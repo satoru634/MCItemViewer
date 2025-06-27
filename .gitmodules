@@ -1,0 +1,3 @@
+[submodule "MCItemViewer/submodules/MCLibs"]
+	path = MCItemViewer/submodules/MCLibs
+	url = git@github-satoru:satoru634/MCLibs.git
