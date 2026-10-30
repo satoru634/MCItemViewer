@@ -411,3 +411,4 @@ res/org/*
 old/*
 work/*
 tool_settings.json
+*.local.*
