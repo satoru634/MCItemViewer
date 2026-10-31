@@ -1,46 +1,31 @@
 # CLAUDE.md
 
-このファイルは、Claude Code（claude.ai/code）がこのリポジトリのコードを扱う際のガイダンスを提供します。
+MCItemViewer は、Minecraft Java Edition（1.13 以降）のアイテムモデルをクライアント `.jar` から直接描画し PNG 出力する、Windows 専用 WPF アプリ（.NET 8、x64）です。コメント・UI 文字列・ドキュメントは日本語で書いてください。
 
-## 概要
+## 開発ルール
 
-MCItemViewer は Windows 専用の WPF デスクトップアプリ（.NET 8、x64）です。Minecraft Java Edition（1.13 以降）のアイテムモデルを、ゲームを起動せずにバニラクライアントの `.jar` から直接描画し、PNG として出力できます。UI 文字列・コードコメント・README はすべて日本語なので、新たに追加するコメントや UI 文字列も日本語で書いてください。
+- ファイルの変更や追加を行う前に、作業ブランチを切ること。
+- クラスを追加・変更したら、対応するユニットテストを追加すること（テストフレームワーク: xUnit、配置先: `MCItemViewerTests/<同じ名前空間>/`）。
+- ユニットテストがパスするまで次の実装に進まないこと。
+- 指示があるまでコミットしないこと。
+- `作業ブランチを切る -> 実装 -> テスト実装`を1タスクとする。
+- コミットは1タスク毎に行い、その都度コミットしてよいか確認すること。
+- ファイルやディレクトリ構成を変更した場合は、CLAUDE.md および `.claude` 配下に記載の該当箇所も変更する。
+- プルリクマージ後は、作業ブランチをローカル・リモート共に削除し、master ブランチを最新にする。
 
-## ビルド / 実行
-
-ソリューションはリポジトリ直下ではなく、内側の `MCItemViewer/` ディレクトリにあります。
+## ビルド
 
 ```bash
-git submodule update --init --recursive   # ビルドには MCLibs が必要
+git submodule update --init --recursive
 dotnet build MCItemViewer/MCItemViewer.sln
-dotnet run --project MCItemViewer/MCItemViewer.csproj
 ```
 
-- テストや lint は設定されていません。
-- Costura.Fody（`FodyWeavers.xml`）により、依存ライブラリは出力 exe に埋め込まれます。
-- 実行時、アプリは**カレントディレクトリ**の `tool_settings.json`（gitignore 対象）を読み書きします。何かを表示するには、バージョンがインストール済みの有効な `.minecraft` ディレクトリ（デフォルトは `%APPDATA%\.minecraft`）が必要です。
+## 詳細ドキュメント
 
-## アーキテクチャ
+作業内容に応じて必要なものを参照してください。
 
-### 2リポジトリ構成
-Minecraft 固有の処理のほとんどは、git サブモジュール `MCItemViewer/submodules/MCLibs`（別リポジトリ `satoru634/MCLibs`。同じ作者の他ツールと共用）にあります。csproj は `submodules\**` をコンパイル対象から除外し、代わりにその中の2つのプロジェクトを `ProjectReference` で参照しています。
+- [.claude/docs/build.md](.claude/docs/build.md) — ビルド・実行手順、実行時に必要な環境
+- [.claude/docs/architecture.md](.claude/docs/architecture.md) — MCLibs サブモジュールとの役割分担、アプリ本体の構成、PNG 出力の流れ
+- [.claude/docs/quirks.md](.claude/docs/quirks.md) — 名前空間の不一致などの癖、既知の制限
 
-- **MCToolsCommonLib** — 汎用ヘルパー群。`JarLoader`（クライアント jar から assets/lang/JSON/テクスチャを読み込む）、`Setting<T>`（JSON 設定の永続化）、`ItemBaseViewModel<T>`（ComboBox バインド用のリスト＋選択インデックス）、`NotifyInfo`、`CommonLib.GetMinecraftProgramFiles/GetMinecraftProgramFilePath`（バージョン検出）。
-- **MCModelRenderer** — `BlockModelLoarder`（綴りはこのまま。`JarLoader` を継承し、アイテムID ↔ ローカライズ名の解決と、ブロック/アイテムモデル＋テクスチャの読み込みを行う）、`ModelRender`（HelixToolkit SharpDX のシーンを構築して `Viewport3DX` に描画し、`Output()` で `<名前空間>_<ID>_x<サイズ>.png` を書き出す）、`ColorConverter`。
-
-モデルの読み込みや描画の挙動を変える場合、修正先は通常このリポジトリではなく MCLibs です。MCLibs 側でコミットするとこちらのサブモジュール参照が更新されるので、それは別途こちらでコミットする必要があります。
-
-### アプリ本体（このリポジトリ）
-単一ウィンドウ構成。MVVM は CommunityToolkit.Mvvm（`[ObservableProperty]`、`[RelayCommand]`）、UI は WPF-UI（`FluentWindow`、`AutoSuggestBox`、ダークテーマ）を使用しています。
-
-- `ViewModels/MainWindowViewModel.cs` は `Setting<ToolConfig>`、バージョン/名前空間/出力サイズのリスト、`BlockModelLoarder`、`ModelRender` を保持します。Minecraft のパスやバージョンを変更すると、ローダーは破棄されて再生成されます。設定は変更のたびに即座に保存されます。
-- `Views/MainWindow.xaml.cs` には単なる配線ではなく実質的なロジックがあります。アイテムID とアイテム名の AutoSuggestBox をローダー経由で相互に同期させ、サイズ/アイテム/背景色が変わっていなければ再描画をスキップします。
-- ViewModel は XAML 内で直接生成されます（DataContext に `<vm:MainWindowViewModel/>`）。`App.xaml.cs` の Generic Host / DI はテンプレートの残骸で使われていません（`ConfigureServices` は例外を投げ、`OnStartup` もフックされていない）。新しいコードを `App.GetService` 経由にしないでください。
-
-### PNG 出力の流れ（分かりにくい点）
-`Viewport3DX` は2つあります。画面表示用の `BlockView` と、出力専用の `ImageRender`（高さ 0 の行に配置）です。`BeginOutputPngCommand` がビューポートを選択した出力サイズにリサイズし、`_isOutputPng` を立てて描画します。`ImageRender.OnRendered` は複数回発火するため、code-behind で 100ms の `DispatcherTimer` を使って間引いています。タイマーの Tick で `OutputPng` が呼ばれ、`ModelRender.Output` でビューポートをキャプチャし、`NotifyArea` に3秒間通知を表示します。
-
-### 注意すべき癖
-- `App` と `Models/ToolConfig` は名前空間 `MCBlockViewer`（姉妹プロジェクトからの持ち越し）を使っており、Views/ViewModels は `MCItemViewer` です。
-- 言語は `ja_jp`、名前空間は `minecraft` に固定されています。`ModMinecraftPath` は設定と UI に存在しますが、MOD アイテムはまだ未対応です。
-- ブロックエンティティ（チェスト、ベッドなど）は描画されず、1.21.4 以降ではバイオームの色が反映されない場合があります。
+モデルの読み込み・描画の挙動を変える場合、修正先は通常このリポジトリではなくサブモジュール MCLibs です（詳細は architecture.md）。
