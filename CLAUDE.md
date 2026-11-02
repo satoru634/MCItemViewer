@@ -13,11 +13,12 @@ MCItemViewer は、Minecraft Java Edition（1.13 以降）のアイテムモデ�
 - ファイルやディレクトリ構成を変更した場合は、CLAUDE.md および `.claude` 配下に記載の該当箇所も変更する。
 - プルリクマージ後は、作業ブランチをローカル・リモート共に削除し、master ブランチを最新にする。
 
-## ビルド
+## ビルド / テスト
 
 ```bash
 git submodule update --init --recursive
 dotnet build MCItemViewer/MCItemViewer.sln
+dotnet test MCItemViewer/MCItemViewer.sln
 ```
 
 ## 詳細ドキュメント

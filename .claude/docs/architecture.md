@@ -17,13 +17,25 @@ Minecraft 固有の処理のほとんどは、git サブモジュール `MCItemV
 
 モデルの読み込みや描画の挙動を変える場合、修正先は通常このリポジトリではなく MCLibs です。MCLibs 側でコミットするとこちらのサブモジュール参照が更新されるので、それは別途こちらでコミットする必要があります。
 
+## リポジトリ構成
+
+```
+MCItemViewer/                 リポジトリ直下
+├── MCItemViewer/             アプリ本体（MCItemViewer.sln と MCItemViewer.csproj）
+│   └── submodules/MCLibs/    サブモジュール（MCLibs）
+└── MCItemViewerTests/        xUnit v3 のユニットテスト（MCItemViewer.sln に含まれる）
+    ├── Helpers/              テスト用ヘルパー（一時フォルダ、ダミーの .minecraft の作成）
+    ├── Models/               ToolConfig のテスト
+    └── ViewModels/           MainWindowViewModel のテスト
+```
+
 ## アプリ本体（このリポジトリ）
 
 単一ウィンドウ構成。MVVM は CommunityToolkit.Mvvm（`[ObservableProperty]`、`[RelayCommand]`）、UI は WPF-UI（`FluentWindow`、`AutoSuggestBox`、ダークテーマ）を使用しています。
 
 - `ViewModels/MainWindowViewModel.cs` は `Setting<ToolConfig>`、バージョン/名前空間/出力サイズのリスト、`BlockModelLoarder`、`ModelRender` を保持します。Minecraft のパスやバージョンを変更すると、ローダーは破棄されて再生成されます。設定は変更のたびに即座に保存されます。
 - `Views/MainWindow.xaml.cs` には単なる配線ではなく実質的なロジックがあります。アイテムID とアイテム名の AutoSuggestBox をローダー経由で相互に同期させ、サイズ/アイテム/背景色が変わっていなければ再描画をスキップします。
-- ViewModel は XAML 内で直接生成されます（DataContext に `<vm:MainWindowViewModel/>`）。`App.xaml.cs` の Generic Host / DI はテンプレートの残骸で使われていません（`ConfigureServices` は例外を投げ、`OnStartup` もフックされていない）。新しいコードを `App.GetService` 経由にしないでください。
+- ViewModel は XAML 内で直接生成されます（DataContext に `<vm:MainWindowViewModel/>`、既定のコンストラクタを使用）。設定ファイルのパスを受け取る `internal` コンストラクタはテスト用です。`App.xaml.cs` の Generic Host / DI はテンプレートの残骸で使われていません（`ConfigureServices` は例外を投げ、`OnStartup` もフックされていない）。新しいコードを `App.GetService` 経由にしないでください。
 
 ## PNG 出力の流れ（分かりにくい点）
 
