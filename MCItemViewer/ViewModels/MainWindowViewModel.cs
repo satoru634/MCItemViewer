@@ -95,11 +95,19 @@ namespace MCItemViewer.ViewModels
         private bool _isOutputPng = false;
 
         /// <summary>
-        /// コンストラクタ。設定ファイルを読み込み、初期データを設定する。
+        /// コンストラクタ。カレントディレクトリの設定ファイル（tool_settings.json）を読み込み、初期データを設定する。
         /// </summary>
-        public MainWindowViewModel()
+        public MainWindowViewModel() : this(Path.Combine(Directory.GetCurrentDirectory(), "tool_settings.json"))
         {
-            _config = new Setting<ToolConfig>(Path.Combine(Directory.GetCurrentDirectory(), "tool_settings.json"));
+        }
+
+        /// <summary>
+        /// コンストラクタ。指定された設定ファイルを読み込み、初期データを設定する。
+        /// </summary>
+        /// <param name="settingPath">設定ファイルのパス</param>
+        internal MainWindowViewModel(string settingPath)
+        {
+            _config = new Setting<ToolConfig>(settingPath);
             _notifyData = new NotifyInfo();
             _vanillaMinecraftPath = _config.Data.VanillaMinecraftPath;
             _modMinecraftPath = _config.Data.ModMinecraftPath;

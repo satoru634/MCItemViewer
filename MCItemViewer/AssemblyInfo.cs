@@ -1,4 +1,8 @@
+using System.Runtime.CompilerServices;
 using System.Windows;
+
+// テストプロジェクトから internal なクラス（MainWindowViewModel など）を参照できるようにする
+[assembly: InternalsVisibleTo("MCItemViewerTests")]
 
 [assembly: ThemeInfo(
     ResourceDictionaryLocation.None, //where theme specific resource dictionaries are located
