@@ -34,7 +34,7 @@ MCItemViewer/                 リポジトリ直下
 単一ウィンドウ構成。MVVM は CommunityToolkit.Mvvm（`[ObservableProperty]`、`[RelayCommand]`）、UI は WPF-UI（`FluentWindow`、`AutoSuggestBox`、ダークテーマ）を使用しています。
 
 - `ViewModels/MainWindowViewModel.cs` は `Setting<ToolConfig>`、バージョン/名前空間/出力サイズのリスト、`BlockModelLoarder`、`ModelRender` を保持します。Minecraft のパスやバージョンを変更すると、ローダーは破棄されて再生成されます。設定は変更のたびに即座に保存されます。
-- `Views/MainWindow.xaml.cs` には単なる配線ではなく実質的なロジックがあります。アイテムID とアイテム名の AutoSuggestBox をローダー経由で相互に同期させ、サイズ/アイテム/背景色が変わっていなければ再描画をスキップします。
+- `Views/MainWindow.xaml.cs` はイベントの配線が中心です。アイテムID とアイテム名の AutoSuggestBox の相互同期と、サイズ/アイテム/背景色が変わっていなければ再描画をスキップする判定は、ViewModel の `TryResolveItem`（入力元は `ItemInputSource`）、`NeedsRedraw`、`SaveDrawnState` に切り出してあり、code-behind はそれらを呼んで結果をコントロールに反映するだけです。
 - ViewModel は XAML 内で直接生成されます（DataContext に `<vm:MainWindowViewModel/>`、既定のコンストラクタを使用）。設定ファイルのパスを受け取る `internal` コンストラクタはテスト用です。`App.xaml.cs` の Generic Host / DI はテンプレートの残骸で使われていません（`ConfigureServices` は例外を投げ、`OnStartup` もフックされていない）。新しいコードを `App.GetService` 経由にしないでください。
 
 ## PNG 出力の流れ（分かりにくい点）
