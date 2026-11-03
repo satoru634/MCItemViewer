@@ -95,6 +95,26 @@ namespace MCItemViewer.ViewModels
         private bool _isOutputPng = false;
 
         /// <summary>
+        /// 前回 BlockView に描画したアイテムID
+        /// </summary>
+        private string _drawnItemID = "";
+
+        /// <summary>
+        /// 前回 BlockView に描画したときの幅
+        /// </summary>
+        private int _drawnWidth = 0;
+
+        /// <summary>
+        /// 前回 BlockView に描画したときの高さ
+        /// </summary>
+        private int _drawnHeight = 0;
+
+        /// <summary>
+        /// 前回 BlockView に描画したときの背景色
+        /// </summary>
+        private string _drawnBackgroundColor = "";
+
+        /// <summary>
         /// コンストラクタ。カレントディレクトリの設定ファイル（tool_settings.json）を読み込み、初期データを設定する。
         /// </summary>
         public MainWindowViewModel() : this(Path.Combine(Directory.GetCurrentDirectory(), "tool_settings.json"))
@@ -292,6 +312,70 @@ namespace MCItemViewer.ViewModels
         public void ChangeNameSpace()
         {
             ModelLoader = InitBlockModelLoarder(NameSpaceList.ItemList[NameSpaceList.SelectedIndex]);
+            return;
+        }
+
+        /// <summary>
+        /// 入力欄の内容から、表示するアイテムのアイテムIDとアイテム名の組を求める。
+        /// </summary>
+        /// <param name="source">入力元</param>
+        /// <param name="itemIDText">アイテムID の入力欄の文字列</param>
+        /// <param name="itemNameText">アイテム名の入力欄の文字列</param>
+        /// <param name="itemID">求めたアイテムID</param>
+        /// <param name="itemName">求めたアイテム名</param>
+        /// <returns>入力されたアイテムID・アイテム名が有効な場合は true</returns>
+        public bool TryResolveItem(ItemInputSource source, string itemIDText, string itemNameText, out string itemID, out string itemName)
+        {
+            switch (source)
+            {
+                case ItemInputSource.ItemID:
+                    // アイテムID からアイテム名を求める
+                    itemID = itemIDText;
+                    itemName = ModelLoader.GetItemName(itemIDText);
+                    return itemName != "";
+
+                case ItemInputSource.ItemName:
+                    // アイテム名からアイテムID を求める
+                    itemID = ModelLoader.GetItemID(itemNameText);
+                    itemName = itemNameText;
+                    return itemID != "";
+
+                default:
+                    // 入力がない場合は、モデルローダーで選択中のアイテムを使う
+                    itemID = ModelLoader.ItemID;
+                    itemName = ModelLoader.ItemName;
+                    return true;
+            }
+        }
+
+        /// <summary>
+        /// BlockView の再描画が必要か判定する。
+        /// </summary>
+        /// <param name="itemID">表示するアイテムID</param>
+        /// <param name="width">描画幅</param>
+        /// <param name="height">描画高さ</param>
+        /// <param name="backgroundColor">背景色</param>
+        /// <returns>前回の描画からアイテムID・サイズ・背景色のいずれかが変わっていれば true</returns>
+        public bool NeedsRedraw(string itemID, int width, int height, string backgroundColor)
+        {
+            return (_drawnWidth != width) ||
+                   (_drawnHeight != height) ||
+                   (_drawnItemID != itemID) ||
+                   (_drawnBackgroundColor != backgroundColor);
+        }
+
+        /// <summary>
+        /// BlockView に描画した内容を記録する。アイテムID はモデルローダーで選択中のものを記録する。
+        /// </summary>
+        /// <param name="width">描画幅</param>
+        /// <param name="height">描画高さ</param>
+        /// <param name="backgroundColor">背景色</param>
+        public void SaveDrawnState(int width, int height, string backgroundColor)
+        {
+            _drawnItemID = ModelLoader.ItemID;
+            _drawnWidth = width;
+            _drawnHeight = height;
+            _drawnBackgroundColor = backgroundColor;
             return;
         }
 

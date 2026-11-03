@@ -23,7 +23,7 @@ dotnet test MCItemViewer/MCItemViewer.sln
 - 次のものはテスト対象外です。
   - `Viewport3DX`（STA スレッドと GPU）が必要な描画処理（`UpdateBlockModel`、`BeginOutputPng`）
   - ダイアログを表示する `OpenFolder`
-  - code-behind（`MainWindow.xaml.cs`）
+  - code-behind（`MainWindow.xaml.cs`）。ロジックは ViewModel に切り出してテストしており、code-behind にはコントロールとの値の受け渡しとイベントの配線だけを残しています。
 
 ## 補足
 

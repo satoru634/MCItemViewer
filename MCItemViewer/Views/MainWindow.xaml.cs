@@ -28,21 +28,6 @@ namespace MCItemViewer.Views
         private MainWindowViewModel _viewModel;
 
         /// <summary>
-        /// 前回選択されていたアイテムID
-        /// </summary>
-        private string _prevItemID;
-
-        /// <summary>
-        /// 前回のBlockViewのサイズ
-        /// </summary>
-        private Size _prevBlockViewSize;
-
-        /// <summary>
-        /// 前回の背景色
-        /// </summary>
-        private string _prevBackgroundColor;
-
-        /// <summary>
         /// レンダリング完了を待つためのタイマー
         /// </summary>
         private DispatcherTimer _renderCompleteTimer;
@@ -54,9 +39,6 @@ namespace MCItemViewer.Views
         {
             InitializeComponent();
             _viewModel = (MainWindowViewModel)DataContext;
-            _prevItemID = string.Empty;
-            _prevBlockViewSize = new Size(0, 0);
-            _prevBackgroundColor = "";
 
             _renderCompleteTimer = new DispatcherTimer();
             _renderCompleteTimer.Tick += RenderCompleteTimer_Tick;
@@ -115,16 +97,7 @@ namespace MCItemViewer.Views
         private void SuggestBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
         {
             sender.Text = (string)args.SelectedItem;
-            if (sender.Name == "SuggestItemID")
-            {
-                // アイテムIDが変更された場合
-                UpdateBlockModel("id");
-            }
-            else if (sender.Name == "SuggestItemName")
-            {
-                // アイテム名が変更された場合
-                UpdateBlockModel("name");
-            }
+            UpdateBlockModel(ToInputSource(sender));
 
             return;
         }
@@ -144,16 +117,7 @@ namespace MCItemViewer.Views
 
             // Enterキーが押された場合は、アイテムを更新
             AutoSuggestBox suggestBox = (AutoSuggestBox)sender;
-            if (suggestBox.Name == "SuggestItemID")
-            {
-                // アイテムIDが変更された場合
-                UpdateBlockModel("id");
-            }
-            else if (suggestBox.Name == "SuggestItemName")
-            {
-                // アイテム名が変更された場合
-                UpdateBlockModel("name");
-            }
+            UpdateBlockModel(ToInputSource(suggestBox));
 
             return;
         }
@@ -166,16 +130,7 @@ namespace MCItemViewer.Views
         private void SuggestBox_LostFocus(object sender, RoutedEventArgs e)
         {
             AutoSuggestBox suggestBox = (AutoSuggestBox)sender;
-            if (suggestBox.Name == "SuggestItemID")
-            {
-                // アイテムIDで更新する
-                UpdateBlockModel("id");
-            }
-            else if (suggestBox.Name == "SuggestItemName")
-            {
-                // アイテム名で更新する
-                UpdateBlockModel("name");
-            }
+            UpdateBlockModel(ToInputSource(suggestBox));
 
             return;
         }
@@ -209,10 +164,25 @@ namespace MCItemViewer.Views
         }
 
         /// <summary>
+        /// AutoSuggestBox から入力元を求める
+        /// </summary>
+        /// <param name="suggestBox">AutoSuggestBox</param>
+        /// <returns>入力元</returns>
+        private static ItemInputSource ToInputSource(AutoSuggestBox suggestBox)
+        {
+            return suggestBox.Name switch
+            {
+                "SuggestItemID" => ItemInputSource.ItemID,
+                "SuggestItemName" => ItemInputSource.ItemName,
+                _ => ItemInputSource.None,
+            };
+        }
+
+        /// <summary>
         /// ブロックモデルを更新
         /// </summary>
-        /// <param name="changeType">変更されたプロパティの種類</param>
-        private void UpdateBlockModel(string changeType = "")
+        /// <param name="source">入力元</param>
+        private void UpdateBlockModel(ItemInputSource source = ItemInputSource.None)
         {
             // ViewModelがnullの場合は何もしない
             if (_viewModel == null)
@@ -220,58 +190,29 @@ namespace MCItemViewer.Views
                 return;
             }
 
-            // SuggestBoxを更新
-            if (changeType == "id")
+            // 入力からアイテムIDとアイテム名を求め、SuggestBoxを更新
+            if (_viewModel.TryResolveItem(source, SuggestItemID.Text, SuggestItemName.Text, out string itemID, out string itemName) == false)
             {
-                string text = _viewModel.ModelLoader.GetItemName(SuggestItemID.Text);
-                if (text == "")
-                {
-                    // アイテムIDが無効な場合は何もしない
-                    return;
-                }
+                // アイテムID・アイテム名が無効な場合は何もしない
+                return;
+            }
 
-                SuggestItemName.Text = text;
-            }
-            else if (changeType == "name")
-            {
-                string text = _viewModel.ModelLoader.GetItemID(SuggestItemName.Text);
-                if (text == "")
-                {
-                    // アイテム名が無効な場合は何もしない
-                    return;
-                }
-
-                SuggestItemID.Text = text;
-            }
-            else
-            {
-                SuggestItemID.Text = _viewModel.ModelLoader.ItemID;
-                SuggestItemName.Text = _viewModel.ModelLoader.ItemName;
-            }
+            SuggestItemID.Text = itemID;
+            SuggestItemName.Text = itemName;
 
             // サイズやアイテムIDが変更されていない場合は何もしない
-            if ((_prevBlockViewSize.Width == (int)BlockViewArea.ActualWidth) &&
-                (_prevBlockViewSize.Height == (int)BlockViewArea.ActualHeight) &&
-                (_prevItemID == SuggestItemID.Text) &&
-                (_prevBackgroundColor == BackgroundColor.Text))
+            int width = (int)BlockViewArea.ActualWidth;
+            int height = (int)BlockViewArea.ActualHeight;
+            if (_viewModel.NeedsRedraw(itemID, width, height, BackgroundColor.Text) == false)
             {
                 return;
             }
 
             // BlockViewを更新
-            _viewModel.UpdateBlockModel(
-                SuggestItemName.Text,
-                (int)BlockViewArea.ActualWidth,
-                (int)BlockViewArea.ActualHeight,
-                BackgroundColor.Text,
-                BlockView
-            );
+            _viewModel.UpdateBlockModel(itemName, width, height, BackgroundColor.Text, BlockView);
 
-            // 前回のアイテムIDとBlockViewのサイズを更新
-            _prevItemID = _viewModel.ModelLoader.ItemID;
-            _prevBlockViewSize.Width = (int)BlockViewArea.ActualWidth;
-            _prevBlockViewSize.Height = (int)BlockViewArea.ActualHeight;
-            _prevBackgroundColor = BackgroundColor.Text;
+            // 描画した内容を記録
+            _viewModel.SaveDrawnState(width, height, BackgroundColor.Text);
             return;
         }
 

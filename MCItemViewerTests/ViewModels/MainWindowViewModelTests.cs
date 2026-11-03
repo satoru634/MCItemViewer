@@ -14,6 +14,7 @@ namespace MCItemViewerTests.ViewModels
     /// 一時フォルダにダミーの .minecraft と設定ファイルを作り、設定ファイルのパスを指定するコンストラクタで生成する。
     /// Viewport3DX（WPF の STA スレッドと GPU）が必要な描画処理（UpdateBlockModel、BeginOutputPng）と、
     /// ダイアログを表示する OpenFolder はテスト対象外とする。
+    /// code-behind（MainWindow.xaml.cs）から切り出したアイテムの解決・再描画判定（TryResolveItem、NeedsRedraw、SaveDrawnState）もここでテストする。
     /// </remarks>
     public class MainWindowViewModelTests : IDisposable
     {
@@ -361,6 +362,182 @@ namespace MCItemViewerTests.ViewModels
             Assert.Empty(vm.ModelLoader.ItemIDList);
             Assert.Contains(nameof(MainWindowViewModel.VersionList), changed);
             Assert.Contains(nameof(MainWindowViewModel.ModelLoader), changed);
+        }
+
+        // ── TryResolveItem ────────────────────────────────────────────────────
+
+        [Fact]
+        public void TryResolveItem_ValidItemID_ReturnsTrueWithItemName()
+        {
+            WriteSetting();
+            var vm = new MainWindowViewModel(_settingPath);
+
+            bool result = vm.TryResolveItem(ItemInputSource.ItemID, "minecraft:stone", "リンゴ", out string itemID, out string itemName);
+
+            Assert.True(result);
+            Assert.Equal("minecraft:stone", itemID);
+            Assert.Equal("石", itemName);
+        }
+
+        [Theory]
+        [InlineData("minecraft:not_exists")]
+        [InlineData("")]
+        public void TryResolveItem_InvalidItemID_ReturnsFalse(string itemIDText)
+        {
+            WriteSetting();
+            var vm = new MainWindowViewModel(_settingPath);
+
+            bool result = vm.TryResolveItem(ItemInputSource.ItemID, itemIDText, "リンゴ", out _, out _);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void TryResolveItem_ValidItemName_ReturnsTrueWithItemID()
+        {
+            WriteSetting();
+            var vm = new MainWindowViewModel(_settingPath);
+
+            bool result = vm.TryResolveItem(ItemInputSource.ItemName, "minecraft:apple", "石", out string itemID, out string itemName);
+
+            Assert.True(result);
+            Assert.Equal("minecraft:stone", itemID);
+            Assert.Equal("石", itemName);
+        }
+
+        [Theory]
+        [InlineData("存在しないアイテム")]
+        [InlineData("")]
+        public void TryResolveItem_InvalidItemName_ReturnsFalse(string itemNameText)
+        {
+            WriteSetting();
+            var vm = new MainWindowViewModel(_settingPath);
+
+            bool result = vm.TryResolveItem(ItemInputSource.ItemName, "minecraft:apple", itemNameText, out _, out _);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void TryResolveItem_SourceNone_ReturnsLoaderSelectionIgnoringInput()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+
+            bool result = vm.TryResolveItem(ItemInputSource.None, "minecraft:apple", "リンゴ", out string itemID, out string itemName);
+
+            Assert.True(result);
+            Assert.Equal("minecraft:stone", itemID);
+            Assert.Equal("石", itemName);
+        }
+
+        [Fact]
+        public void TryResolveItem_SourceNoneWithoutItems_ReturnsTrueWithEmpty()
+        {
+            WriteSetting(c => c.VanillaMinecraftPath = _temp.Combine("not_exists"));
+            var vm = new MainWindowViewModel(_settingPath);
+
+            bool result = vm.TryResolveItem(ItemInputSource.None, "", "", out string itemID, out string itemName);
+
+            Assert.True(result);
+            Assert.Equal("", itemID);
+            Assert.Equal("", itemName);
+        }
+
+        [Fact]
+        public void TryResolveItem_DoesNotChangeLoaderSelection()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+
+            vm.TryResolveItem(ItemInputSource.ItemName, "", "リンゴ", out _, out _);
+
+            Assert.Equal("minecraft:stone", vm.ModelLoader.ItemID);
+        }
+
+        // ── NeedsRedraw ───────────────────────────────────────────────────────
+
+        [Fact]
+        public void NeedsRedraw_NotDrawnYet_ReturnsTrue()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+
+            Assert.True(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
+        }
+
+        [Fact]
+        public void NeedsRedraw_NotDrawnYetWithEmptyValues_ReturnsFalse()
+        {
+            WriteSetting();
+            var vm = new MainWindowViewModel(_settingPath);
+
+            // 初期状態は「アイテムID・背景色が空、サイズ 0x0 を描画済み」と同じ扱いになる
+            Assert.False(vm.NeedsRedraw("", 0, 0, ""));
+        }
+
+        [Fact]
+        public void NeedsRedraw_SameAsDrawnState_ReturnsFalse()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+            vm.SaveDrawnState(300, 200, "#336699");
+
+            Assert.False(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
+        }
+
+        [Theory]
+        [InlineData("minecraft:apple", 300, 200, "#336699")]
+        [InlineData("minecraft:stone", 301, 200, "#336699")]
+        [InlineData("minecraft:stone", 300, 199, "#336699")]
+        [InlineData("minecraft:stone", 300, 200, "#000000")]
+        public void NeedsRedraw_AnyValueChanged_ReturnsTrue(string itemID, int width, int height, string backgroundColor)
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+            vm.SaveDrawnState(300, 200, "#336699");
+
+            Assert.True(vm.NeedsRedraw(itemID, width, height, backgroundColor));
+        }
+
+        // ── SaveDrawnState ────────────────────────────────────────────────────
+
+        [Fact]
+        public void SaveDrawnState_RecordsLoaderItemID()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+
+            vm.SaveDrawnState(300, 200, "#336699");
+
+            // アイテムID は引数ではなくモデルローダーで選択中のものが記録される
+            Assert.False(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
+            Assert.True(vm.NeedsRedraw("minecraft:apple", 300, 200, "#336699"));
+        }
+
+        [Fact]
+        public void SaveDrawnState_CalledAgain_OverwritesPreviousState()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+            vm.SaveDrawnState(300, 200, "#336699");
+
+            vm.SaveDrawnState(640, 480, "#000000");
+
+            Assert.True(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
+            Assert.False(vm.NeedsRedraw("minecraft:stone", 640, 480, "#000000"));
+        }
+
+        [Fact]
+        public void SaveDrawnState_DoesNotWriteSetting()
+        {
+            WriteSetting(c => c.PrevItemName = "石");
+            var vm = new MainWindowViewModel(_settingPath);
+            string before = File.ReadAllText(_settingPath);
+
+            vm.SaveDrawnState(300, 200, "#000000");
+
+            Assert.Equal(before, File.ReadAllText(_settingPath));
         }
 
         // ── OutputPng ─────────────────────────────────────────────────────────
