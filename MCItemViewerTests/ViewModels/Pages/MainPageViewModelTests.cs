@@ -2,21 +2,22 @@ using System.ComponentModel;
 using System.IO;
 using MCBlockViewer.Models;
 using MCItemViewer.ViewModels;
+using MCItemViewer.ViewModels.Pages;
 using MCItemViewerTests.Helpers;
 using MCToolsCommonLib.Common;
 
-namespace MCItemViewerTests.ViewModels
+namespace MCItemViewerTests.ViewModels.Pages
 {
     /// <summary>
-    /// MainWindowViewModel のテスト
+    /// MainPageViewModel のテスト
     /// </summary>
     /// <remarks>
-    /// 一時フォルダにダミーの .minecraft と設定ファイルを作り、設定ファイルのパスを指定するコンストラクタで生成する。
+    /// 一時フォルダにダミーの .minecraft と設定ファイルを作り、その設定ファイルを読み込んだ Setting&lt;ToolConfig&gt; を渡して生成する。
     /// Viewport3DX（WPF の STA スレッドと GPU）が必要な描画処理（UpdateBlockModel、BeginOutputPng）と、
     /// ダイアログを表示する OpenFolder はテスト対象外とする。
-    /// code-behind（MainWindow.xaml.cs）から切り出したアイテムの解決・再描画判定（TryResolveItem、NeedsRedraw、SaveDrawnState）もここでテストする。
+    /// code-behind（MainPage.xaml.cs）から切り出したアイテムの解決・再描画判定（TryResolveItem、NeedsRedraw、SaveDrawnState）もここでテストする。
     /// </remarks>
-    public class MainWindowViewModelTests : IDisposable
+    public class MainPageViewModelTests : IDisposable
     {
         private readonly TempDirectory _temp = new TempDirectory();
 
@@ -26,7 +27,7 @@ namespace MCItemViewerTests.ViewModels
 
         private readonly string _outputPath;
 
-        public MainWindowViewModelTests()
+        public MainPageViewModelTests()
         {
             _minecraftPath = _temp.Combine(".minecraft");
             _settingPath = _temp.Combine("tool_settings.json");
@@ -96,7 +97,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.ModMinecraftPath = @"C:\mods");
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal(_minecraftPath, vm.VanillaMinecraftPath);
             Assert.Equal(@"C:\mods", vm.ModMinecraftPath);
@@ -109,7 +110,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting();
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal("", vm.NotifyData.Message);
         }
@@ -119,7 +120,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.MinecraftVersion = "1.20.4");
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal(["1.20.1", "1.20.4"], vm.VersionList.ItemList.OrderBy(v => v));
             Assert.Equal("1.20.4", Selected(vm.VersionList));
@@ -131,7 +132,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.MinecraftVersion = "");
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal(0, vm.VersionList.SelectedIndex);
         }
@@ -141,7 +142,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.VanillaMinecraftPath = _temp.Combine("not_exists"));
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Empty(vm.VersionList.ItemList);
             Assert.Equal(-1, vm.VersionList.SelectedIndex);
@@ -154,7 +155,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.MinecraftVersion = "1.19");
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Empty(vm.ModelLoader.ItemIDList);
         }
@@ -164,7 +165,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting();
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal(["minecraft"], vm.NameSpaceList.ItemList);
             Assert.Equal("minecraft", Selected(vm.NameSpaceList));
@@ -175,7 +176,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.OutputSizeList = [32, 16, 64]);
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal([32, 16, 64], vm.OutputSizeList.ItemList);
             Assert.Equal(16, Selected(vm.OutputSizeList));
@@ -186,7 +187,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.OutputSizeList = [64, 128]);
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal(64, Selected(vm.OutputSizeList));
         }
@@ -196,7 +197,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting();
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             vm.OutputSizeList.Add(2048);
 
             Assert.Equal([16, 32, 64], ReadSetting().OutputSizeList);
@@ -207,7 +208,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting();
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal(["minecraft:apple", "minecraft:stone"], vm.ModelLoader.ItemIDList);
             Assert.Equal(["リンゴ", "石"], vm.ModelLoader.ItemNameList);
@@ -218,7 +219,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.PrevItemName = "石");
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Equal("minecraft:stone", vm.ModelLoader.ItemID);
             Assert.Equal("石", vm.ModelLoader.ItemName);
@@ -230,7 +231,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting(c => c.PrevItemName = "存在しないアイテム");
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.Empty(vm.ModelLoader.Model.ModelFilePath);
             Assert.Equal("minecraft:apple", vm.ModelLoader.ItemID);   // 先頭のアイテムが選択されたまま
@@ -241,7 +242,7 @@ namespace MCItemViewerTests.ViewModels
         {
             WriteSetting();
 
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.NotNull(vm.BlockRender);
         }
@@ -252,7 +253,7 @@ namespace MCItemViewerTests.ViewModels
         public void ChangeVersion_SelectedAnotherVersion_SavesSettingAndReloadsItems()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             vm.VersionList.SelectedIndex = vm.VersionList.ItemList.IndexOf("1.20.4");
 
             vm.ChangeVersion();
@@ -265,7 +266,7 @@ namespace MCItemViewerTests.ViewModels
         public void ChangeVersion_DisposesPreviousLoaderAndRaisesPropertyChanged()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             var oldLoader = vm.ModelLoader;
             var changed = new List<string?>();
             ((INotifyPropertyChanged)vm).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
@@ -275,14 +276,14 @@ namespace MCItemViewerTests.ViewModels
 
             Assert.NotSame(oldLoader, vm.ModelLoader);
             Assert.Empty(oldLoader.ItemIDList);
-            Assert.Contains(nameof(MainWindowViewModel.ModelLoader), changed);
+            Assert.Contains(nameof(MainPageViewModel.ModelLoader), changed);
         }
 
         [Fact]
         public void ChangeVersion_KeepsPreviousItemSelection()
         {
             WriteSetting(c => c.PrevItemName = "リンゴ");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             vm.VersionList.SelectedIndex = vm.VersionList.ItemList.IndexOf("1.20.4");
 
             vm.ChangeVersion();
@@ -295,7 +296,7 @@ namespace MCItemViewerTests.ViewModels
         public void ChangeVersion_NoSelection_DoesNothing()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             var oldLoader = vm.ModelLoader;
             vm.VersionList.SelectedIndex = -1;
 
@@ -311,7 +312,7 @@ namespace MCItemViewerTests.ViewModels
         public void ChangeNameSpace_RecreatesLoader()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             var oldLoader = vm.ModelLoader;
 
             vm.ChangeNameSpace();
@@ -326,7 +327,7 @@ namespace MCItemViewerTests.ViewModels
         public void VanillaMinecraftPath_Changed_SavesSetting()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             string newPath = _temp.Combine("other_minecraft");
 
             vm.VanillaMinecraftPath = newPath;
@@ -340,7 +341,7 @@ namespace MCItemViewerTests.ViewModels
             string otherPath = _temp.Combine("other_minecraft");
             TestMinecraft.CreateVersion(otherPath, "1.20.1", new Dictionary<string, string> { ["item.minecraft.bread"] = "パン" });
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             vm.VanillaMinecraftPath = otherPath;
 
@@ -352,7 +353,7 @@ namespace MCItemViewerTests.ViewModels
         public void VanillaMinecraftPath_ChangedToMissingPath_ClearsVersionsAndItems()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             var changed = new List<string?>();
             ((INotifyPropertyChanged)vm).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
@@ -360,8 +361,8 @@ namespace MCItemViewerTests.ViewModels
 
             Assert.Empty(vm.VersionList.ItemList);
             Assert.Empty(vm.ModelLoader.ItemIDList);
-            Assert.Contains(nameof(MainWindowViewModel.VersionList), changed);
-            Assert.Contains(nameof(MainWindowViewModel.ModelLoader), changed);
+            Assert.Contains(nameof(MainPageViewModel.VersionList), changed);
+            Assert.Contains(nameof(MainPageViewModel.ModelLoader), changed);
         }
 
         // ── TryResolveItem ────────────────────────────────────────────────────
@@ -370,7 +371,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_ValidItemID_ReturnsTrueWithItemName()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             bool result = vm.TryResolveItem(ItemInputSource.ItemID, "minecraft:stone", "リンゴ", out string itemID, out string itemName);
 
@@ -385,7 +386,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_InvalidItemID_ReturnsFalse(string itemIDText)
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             bool result = vm.TryResolveItem(ItemInputSource.ItemID, itemIDText, "リンゴ", out _, out _);
 
@@ -396,7 +397,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_ValidItemName_ReturnsTrueWithItemID()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             bool result = vm.TryResolveItem(ItemInputSource.ItemName, "minecraft:apple", "石", out string itemID, out string itemName);
 
@@ -411,7 +412,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_InvalidItemName_ReturnsFalse(string itemNameText)
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             bool result = vm.TryResolveItem(ItemInputSource.ItemName, "minecraft:apple", itemNameText, out _, out _);
 
@@ -422,7 +423,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_SourceNone_ReturnsLoaderSelectionIgnoringInput()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             bool result = vm.TryResolveItem(ItemInputSource.None, "minecraft:apple", "リンゴ", out string itemID, out string itemName);
 
@@ -435,7 +436,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_SourceNoneWithoutItems_ReturnsTrueWithEmpty()
         {
             WriteSetting(c => c.VanillaMinecraftPath = _temp.Combine("not_exists"));
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             bool result = vm.TryResolveItem(ItemInputSource.None, "", "", out string itemID, out string itemName);
 
@@ -448,7 +449,7 @@ namespace MCItemViewerTests.ViewModels
         public void TryResolveItem_DoesNotChangeLoaderSelection()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             vm.TryResolveItem(ItemInputSource.ItemName, "", "リンゴ", out _, out _);
 
@@ -461,7 +462,7 @@ namespace MCItemViewerTests.ViewModels
         public void NeedsRedraw_NotDrawnYet_ReturnsTrue()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             Assert.True(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
         }
@@ -470,7 +471,7 @@ namespace MCItemViewerTests.ViewModels
         public void NeedsRedraw_NotDrawnYetWithEmptyValues_ReturnsFalse()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             // 初期状態は「アイテムID・背景色が空、サイズ 0x0 を描画済み」と同じ扱いになる
             Assert.False(vm.NeedsRedraw("", 0, 0, ""));
@@ -480,7 +481,7 @@ namespace MCItemViewerTests.ViewModels
         public void NeedsRedraw_SameAsDrawnState_ReturnsFalse()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             vm.SaveDrawnState(300, 200, "#336699");
 
             Assert.False(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
@@ -494,7 +495,7 @@ namespace MCItemViewerTests.ViewModels
         public void NeedsRedraw_AnyValueChanged_ReturnsTrue(string itemID, int width, int height, string backgroundColor)
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             vm.SaveDrawnState(300, 200, "#336699");
 
             Assert.True(vm.NeedsRedraw(itemID, width, height, backgroundColor));
@@ -506,7 +507,7 @@ namespace MCItemViewerTests.ViewModels
         public void SaveDrawnState_RecordsLoaderItemID()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             vm.SaveDrawnState(300, 200, "#336699");
 
@@ -519,7 +520,7 @@ namespace MCItemViewerTests.ViewModels
         public void SaveDrawnState_CalledAgain_OverwritesPreviousState()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             vm.SaveDrawnState(300, 200, "#336699");
 
             vm.SaveDrawnState(640, 480, "#000000");
@@ -532,7 +533,7 @@ namespace MCItemViewerTests.ViewModels
         public void SaveDrawnState_DoesNotWriteSetting()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
             string before = File.ReadAllText(_settingPath);
 
             vm.SaveDrawnState(300, 200, "#000000");
@@ -546,7 +547,7 @@ namespace MCItemViewerTests.ViewModels
         public async Task OutputPng_OutputNotStarted_DoesNothing()
         {
             WriteSetting(c => c.PrevItemName = "石");
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             // BeginOutputPng を経由していないため、ビューポートやパネルに触れずに終了する
             await vm.OutputPng(null!, null!);
@@ -559,7 +560,7 @@ namespace MCItemViewerTests.ViewModels
         public async Task OutputPng_NoModelLoaded_DoesNothing()
         {
             WriteSetting();
-            var vm = new MainWindowViewModel(_settingPath);
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
 
             await vm.OutputPng(null!, null!);
 

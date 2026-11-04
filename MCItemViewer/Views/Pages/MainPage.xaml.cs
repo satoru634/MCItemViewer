@@ -1,55 +1,61 @@
 ﻿using MCItemViewer.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MCItemViewer.ViewModels.Pages;
+using MCModelRenderer.Utils;
 using System.Windows;
 using System.Windows.Controls;
-using System.Timers;
-using Wpf.Ui.Controls;
-using System.Diagnostics;
-using HelixToolkit.Wpf.SharpDX.Controls;
-using System.Threading;
-using System.Windows.Threading;
 using System.Windows.Input;
-using MCModelRenderer.Utils;
+using System.Windows.Threading;
+using Wpf.Ui.Abstractions.Controls;
+using Wpf.Ui.Controls;
 
-namespace MCItemViewer.Views
+namespace MCItemViewer.Views.Pages
 {
     /// <summary>
-    /// MainWindow.xaml の相互作用ロジック
+    /// メインページ（アイテムの表示と PNG 出力）の View。
+    /// DataContext に自身を設定し、XAML からは ViewModel プロパティ経由で <see cref="MainPageViewModel"/> にアクセスする。
     /// </summary>
-    public partial class MainWindow : FluentWindow
+    public partial class MainPage : INavigableView<MainPageViewModel>
     {
         /// <summary>
-        /// MainWindowViewModelのインスタンス
+        /// このページに対応する ViewModel
         /// </summary>
-        private MainWindowViewModel _viewModel;
+        public MainPageViewModel ViewModel { get; }
 
         /// <summary>
         /// レンダリング完了を待つためのタイマー
         /// </summary>
-        private DispatcherTimer _renderCompleteTimer;
+        private readonly DispatcherTimer _renderCompleteTimer;
 
         /// <summary>
-        /// MainWindowのコンストラクタ
+        /// InitializeComponent が完了したかどうか。
+        /// InitializeComponent 中はバインディングの反映で各イベントが発火するが、コントロールがまだ揃っていないため処理しない。
+        /// （旧 MainWindow では、この間 ViewModel が null で処理を飛ばしていたのと同じ扱い）
         /// </summary>
-        public MainWindow()
+        private bool _isComponentInitialized = false;
+
+        /// <summary>
+        /// DI コンテナから ViewModel を受け取って初期化する。
+        /// </summary>
+        /// <param name="viewModel">メインページの ViewModel</param>
+        public MainPage(MainPageViewModel viewModel)
         {
-            InitializeComponent();
-            _viewModel = (MainWindowViewModel)DataContext;
+            ViewModel = viewModel;
+            DataContext = this;
 
             _renderCompleteTimer = new DispatcherTimer();
             _renderCompleteTimer.Tick += RenderCompleteTimer_Tick;
+
+            InitializeComponent();
+            _isComponentInitialized = true;
         }
 
         /// <summary>
-        /// ウィンドウが読み込まれたときに呼び出されるイベントハンドラ
+        /// ページが読み込まれたときに呼び出されるイベントハンドラ。
+        /// ナビゲーションで再表示されたときも呼び出されるが、サイズやアイテムが変わっていなければ再描画しない。
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void FluentWindow_Loaded(object sender, RoutedEventArgs e)
+        private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             UpdateBlockModel();
             return;
@@ -63,12 +69,12 @@ namespace MCItemViewer.Views
         private void VersionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ComboBox combo = (ComboBox)sender;
-            if ((_viewModel == null) || (combo.Items.Count == 0))
+            if ((_isComponentInitialized == false) || (combo.Items.Count == 0))
             {
                 return;
             }
 
-            _viewModel.ChangeVersion();
+            ViewModel.ChangeVersion();
             return;
         }
 
@@ -80,12 +86,12 @@ namespace MCItemViewer.Views
         private void NameSpace_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ComboBox combo = (ComboBox)sender;
-            if ((_viewModel == null) || (combo.Items.Count == 0))
+            if ((_isComponentInitialized == false) || (combo.Items.Count == 0))
             {
                 return;
             }
 
-            _viewModel.ChangeNameSpace();
+            ViewModel.ChangeNameSpace();
             return;
         }
 
@@ -184,14 +190,14 @@ namespace MCItemViewer.Views
         /// <param name="source">入力元</param>
         private void UpdateBlockModel(ItemInputSource source = ItemInputSource.None)
         {
-            // ViewModelがnullの場合は何もしない
-            if (_viewModel == null)
+            // InitializeComponent が完了していない場合は何もしない
+            if (_isComponentInitialized == false)
             {
                 return;
             }
 
             // 入力からアイテムIDとアイテム名を求め、SuggestBoxを更新
-            if (_viewModel.TryResolveItem(source, SuggestItemID.Text, SuggestItemName.Text, out string itemID, out string itemName) == false)
+            if (ViewModel.TryResolveItem(source, SuggestItemID.Text, SuggestItemName.Text, out string itemID, out string itemName) == false)
             {
                 // アイテムID・アイテム名が無効な場合は何もしない
                 return;
@@ -203,16 +209,16 @@ namespace MCItemViewer.Views
             // サイズやアイテムIDが変更されていない場合は何もしない
             int width = (int)BlockViewArea.ActualWidth;
             int height = (int)BlockViewArea.ActualHeight;
-            if (_viewModel.NeedsRedraw(itemID, width, height, BackgroundColor.Text) == false)
+            if (ViewModel.NeedsRedraw(itemID, width, height, BackgroundColor.Text) == false)
             {
                 return;
             }
 
             // BlockViewを更新
-            _viewModel.UpdateBlockModel(itemName, width, height, BackgroundColor.Text, BlockView);
+            ViewModel.UpdateBlockModel(itemName, width, height, BackgroundColor.Text, BlockView);
 
             // 描画した内容を記録
-            _viewModel.SaveDrawnState(width, height, BackgroundColor.Text);
+            ViewModel.SaveDrawnState(width, height, BackgroundColor.Text);
             return;
         }
 
@@ -236,14 +242,8 @@ namespace MCItemViewer.Views
         /// <param name="e"></param>
         private void RenderCompleteTimer_Tick(object? sender, EventArgs e)
         {
-            // ViewModelがnullの場合は何もしない
-            if (_viewModel == null)
-            {
-                return;
-            }
-
             // 出力処理を実行
-            var task = _viewModel.OutputPng(ImageRender, NotifyArea);
+            var task = ViewModel.OutputPng(ImageRender, NotifyArea);
             _renderCompleteTimer.Stop();
             return;
         }

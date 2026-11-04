@@ -15,15 +15,15 @@ dotnet test MCItemViewer/MCItemViewer.sln
   - `MCItemViewer/` 配下に置くと、本体の csproj がテストコードまでコンパイル対象にしてしまうため、リポジトリ直下に置いています。
 - `dotnet test`（VSTest）からテストを検出・実行するため、`xunit.runner.visualstudio`（3.x）も参照しています。外すと「使用できるテストはありません」となり、テストが1件も実行されません。
 - MCLibs のテストはサブモジュール側（`submodules/MCLibs/MCLibsTests`）にあり、このソリューションには含みません。MCLibs 側で `dotnet test MCLibs.sln` を実行してください。
-- テストファイルは `MCItemViewerTests/<フォルダ>/<クラス名>Tests.cs` に置きます（例: `MCItemViewerTests/ViewModels/MainWindowViewModelTests.cs`）。名前空間は `MCItemViewerTests.<フォルダ>` です。
+- テストファイルは `MCItemViewerTests/<フォルダ>/<クラス名>Tests.cs` に置きます（例: `MCItemViewerTests/ViewModels/Pages/MainPageViewModelTests.cs`）。名前空間は `MCItemViewerTests.<フォルダ>`（例: `MCItemViewerTests.ViewModels.Pages`）です。
 - テストメソッド名は `<メソッド名>_<条件>_<期待結果>`（英語）とし、メソッドごとに `// ── <メソッド名> ───` の区切りコメントを入れます。
-- `MainWindowViewModel` は `internal` のため、`AssemblyInfo.cs` の `InternalsVisibleTo("MCItemViewerTests")` でテストから参照しています。
-- `MainWindowViewModel` のテストは、設定ファイルのパスを受け取る `internal` コンストラクタで生成します。既定のコンストラクタはカレントディレクトリの `tool_settings.json` と実環境の `.minecraft` を使うため、テストでは使いません。
+- `AssemblyInfo.cs` の `InternalsVisibleTo("MCItemViewerTests")` により、`internal` なクラスもテストから参照できます。
+- ViewModel は DI 用のコンストラクタで `Setting<ToolConfig>` を受け取ります。テストでは一時フォルダの設定ファイルを読み込んだ `Setting<ToolConfig>` を渡して生成します（アプリ本体のようにカレントディレクトリの `tool_settings.json` や実環境の `.minecraft` は使わない）。
 - テストでは一時フォルダにダミーの `.minecraft` を作ります（`Helpers/TestMinecraft`）。アプリは言語を `ja_jp` に固定しているため、jar に加えて、アセットインデックスと `assets/objects` 配下の日本語の言語ファイルも作成します。
 - 次のものはテスト対象外です。
   - `Viewport3DX`（STA スレッドと GPU）が必要な描画処理（`UpdateBlockModel`、`BeginOutputPng`）
   - ダイアログを表示する `OpenFolder`
-  - code-behind（`MainWindow.xaml.cs`）。ロジックは ViewModel に切り出してテストしており、code-behind にはコントロールとの値の受け渡しとイベントの配線だけを残しています。
+  - View（`MainWindow`、`MainPage`）と `App`・`ApplicationHostService`。STA スレッドと WPF の `Application` が必要なためです。ロジックは ViewModel に切り出してテストしており、code-behind にはコントロールとの値の受け渡しとイベントの配線だけを残しています。
 
 ## 補足
 

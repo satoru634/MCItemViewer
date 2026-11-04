@@ -22,20 +22,48 @@ Minecraft 固有の処理のほとんどは、git サブモジュール `MCItemV
 ```
 MCItemViewer/                 リポジトリ直下
 ├── MCItemViewer/             アプリ本体（MCItemViewer.sln と MCItemViewer.csproj）
+│   ├── Models/               ToolConfig（設定データ）
+│   ├── Services/             ApplicationHostService（起動時にメインウィンドウを表示）
+│   ├── ViewModels/
+│   │   ├── Pages/            MainPageViewModel
+│   │   └── Windows/          MainWindowViewModel
+│   ├── Views/
+│   │   ├── Pages/            MainPage（アイテムの表示と PNG 出力）
+│   │   └── Windows/          MainWindow（NavigationView のホスト）
 │   └── submodules/MCLibs/    サブモジュール（MCLibs）
 └── MCItemViewerTests/        xUnit v3 のユニットテスト（MCItemViewer.sln に含まれる）
     ├── Helpers/              テスト用ヘルパー（一時フォルダ、ダミーの .minecraft の作成）
     ├── Models/               ToolConfig のテスト
-    └── ViewModels/           MainWindowViewModel のテスト
+    └── ViewModels/
+        ├── Pages/            MainPageViewModel のテスト
+        └── Windows/          MainWindowViewModel のテスト
 ```
 
 ## アプリ本体（このリポジトリ）
 
-単一ウィンドウ構成。MVVM は CommunityToolkit.Mvvm（`[ObservableProperty]`、`[RelayCommand]`）、UI は WPF-UI（`FluentWindow`、`AutoSuggestBox`、ダークテーマ）を使用しています。
+WPF-UI の `NavigationView` によるページ遷移構成です（参考: ComfyUIRunWorkflow）。MVVM は CommunityToolkit.Mvvm（`[ObservableProperty]`、`[RelayCommand]`）、UI は WPF-UI（`FluentWindow`、`NavigationView`、`AutoSuggestBox`、ダークテーマ）を使用しています。
 
-- `ViewModels/MainWindowViewModel.cs` は `Setting<ToolConfig>`、バージョン/名前空間/出力サイズのリスト、`BlockModelLoarder`、`ModelRender` を保持します。Minecraft のパスやバージョンを変更すると、ローダーは破棄されて再生成されます。設定は変更のたびに即座に保存されます。
-- `Views/MainWindow.xaml.cs` はイベントの配線が中心です。アイテムID とアイテム名の AutoSuggestBox の相互同期と、サイズ/アイテム/背景色が変わっていなければ再描画をスキップする判定は、ViewModel の `TryResolveItem`（入力元は `ItemInputSource`）、`NeedsRedraw`、`SaveDrawnState` に切り出してあり、code-behind はそれらを呼んで結果をコントロールに反映するだけです。
-- ViewModel は XAML 内で直接生成されます（DataContext に `<vm:MainWindowViewModel/>`、既定のコンストラクタを使用）。設定ファイルのパスを受け取る `internal` コンストラクタはテスト用です。`App.xaml.cs` の Generic Host / DI はテンプレートの残骸で使われていません（`ConfigureServices` は例外を投げ、`OnStartup` もフックされていない）。新しいコードを `App.GetService` 経由にしないでください。
+### 起動と DI
+
+- `App.xaml.cs` で .NET Generic Host を構築し、`OnStartup` でホストを開始します（`App.xaml` に `StartupUri` はありません）。
+- DI コンテナには次をシングルトンで登録しています。新しいページを追加するときは、ページと ViewModel の両方をここに登録してください。
+  - `Setting<ToolConfig>`（カレントディレクトリの `tool_settings.json`。全 ViewModel で同じインスタンスを共有する）
+  - `AddNavigationViewPageProvider()`（WPF-UI.DependencyInjection。遷移先のページを DI コンテナから取得する）
+  - `ApplicationHostService`（ホステッドサービス。起動時に `INavigationWindow` を取得して表示し、`MainPage` へ遷移する）
+  - `INavigationWindow` → `MainWindow`、`MainWindowViewModel`
+  - `MainPage`、`MainPageViewModel`
+- View は `INavigableView<TViewModel>` / `INavigationWindow` を実装し、コンストラクタで ViewModel を受け取って `ViewModel` プロパティに保持し、`DataContext = this` とします。XAML のバインディングは `{Binding ViewModel.Xxx}` の形になります。
+
+### ウィンドウ（`Views/Windows/MainWindow`）
+
+- `NavigationView` のホストです。ナビゲーション項目は XAML（`NavigationView.MenuItems`）で定義しています。`NavigationViewItem` は STA スレッドでしか生成できず、ViewModel に置くとテストできないためです。
+- `MainWindowViewModel` はタイトルと、ペインの開閉状態（`IsPaneOpen`）を持ちます。開閉状態は `ToolConfig.WindowSetting.IsPaneOpen` から復元し、変更のたびに保存します。
+
+### メインページ（`Views/Pages/MainPage`）
+
+- `ViewModels/Pages/MainPageViewModel.cs` は `Setting<ToolConfig>`、バージョン/名前空間/出力サイズのリスト、`BlockModelLoarder`、`ModelRender` を保持します。Minecraft のパスやバージョンを変更すると、ローダーは破棄されて再生成されます。設定は変更のたびに即座に保存されます。
+- `Views/Pages/MainPage.xaml.cs` はイベントの配線が中心です。アイテムID とアイテム名の AutoSuggestBox の相互同期と、サイズ/アイテム/背景色が変わっていなければ再描画をスキップする判定は、ViewModel の `TryResolveItem`（入力元は `ItemInputSource`）、`NeedsRedraw`、`SaveDrawnState` に切り出してあり、code-behind はそれらを呼んで結果をコントロールに反映するだけです。
+- ページはシングルトンのため、別ページから戻ってきても同じインスタンスが再表示されます（`Loaded` は再度発火するが、サイズ等が変わっていなければ再描画しない）。
 
 ## PNG 出力の流れ（分かりにくい点）
 

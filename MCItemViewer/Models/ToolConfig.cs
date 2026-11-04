@@ -25,12 +25,18 @@ namespace MCBlockViewer.Models
         public Size WindowSize { get; set; }
 
         /// <summary>
-        /// コンストラクタ。デフォルトのウィンドウ位置とサイズを設定する。
+        /// ナビゲーションペインが開いているかどうかを保持するプロパティ
+        /// </summary>
+        public bool IsPaneOpen { get; set; }
+
+        /// <summary>
+        /// コンストラクタ。デフォルトのウィンドウ位置とサイズ、ペインの開閉状態（閉じた状態）を設定する。
         /// </summary>
         public WindowSettingData()
         {
             WindowPos = new Point(100, 100);
-            WindowSize = new Size(1000, 500);
+            WindowSize = new Size(1000, 560);
+            IsPaneOpen = false;
         }
     }
 
@@ -80,6 +86,11 @@ namespace MCBlockViewer.Models
         public List<int> OutputSizeList { get; set; }
 
         /// <summary>
+        /// ウィンドウの設定を保持するプロパティ
+        /// </summary>
+        public WindowSettingData WindowSetting { get; set; }
+
+        /// <summary>
         /// コンストラクタ。デフォルトの設定を初期化する。
         /// </summary>
         public ToolConfig()
@@ -95,7 +106,7 @@ namespace MCBlockViewer.Models
             BackgroundColor = "#000000";
             OutputSizeList = new List<int> { 16, 32, 64, 128, 256, 512, 1024 };
 
-            //WindowSetting = new WindowSettingData();
+            WindowSetting = new WindowSettingData();
         }
     }
 }
