@@ -1,0 +1,58 @@
+﻿<ui:FluentWindow x:Class="MCItemViewer.Views.Windows.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:MCItemViewer.Views.Windows"
+    xmlns:pages="clr-namespace:MCItemViewer.Views.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    mc:Ignorable="d"
+    Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
+    Height="560"
+    Width="1000"
+    MinHeight="560"
+    MinWidth="1000"
+    d:DataContext="{d:DesignInstance local:MainWindow, IsDesignTimeCreatable=False}"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ExtendsContentIntoTitleBar="True"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!--
+            ナビゲーション項目は XAML で定義する（NavigationViewItem は STA スレッドでしか生成できず、ViewModel に置くとテストできないため）。
+            ペインの開閉状態は ViewModel 経由で設定ファイルに保存する。
+        -->
+        <ui:NavigationView
+            x:Name="RootNavigation"
+            Grid.Row="1"
+            FrameMargin="0"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleVisible="True"
+            OpenPaneLength="150"
+            IsPaneOpen="{Binding ViewModel.IsPaneOpen, Mode=TwoWay}">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem
+                    Content="メイン"
+                    TargetPageType="{x:Type pages:MainPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Cube20"/>
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+        </ui:NavigationView>
+
+        <ui:TitleBar
+            x:Name="TitleBar"
+            Title="{Binding ViewModel.ApplicationTitle}"
+            Grid.Row="0"
+            Height="30"/>
+    </Grid>
+</ui:FluentWindow>

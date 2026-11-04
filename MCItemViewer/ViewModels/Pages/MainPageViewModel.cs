@@ -19,18 +19,18 @@ using System.Windows.Media.Imaging;
 using HelixToolkit.Wpf.SharpDX;
 using System.Diagnostics;
 
-namespace MCItemViewer.ViewModels
+namespace MCItemViewer.ViewModels.Pages
 {
     /// <summary>
-    /// MainWindowViewModel クラスは、アプリケーションのメインウィンドウに関連するデータとロジックを管理します。
+    /// MainPageViewModel クラスは、メインページ（アイテムの表示と PNG 出力）に関連するデータとロジックを管理します。
     /// このクラスは、設定の読み込み、バージョンや名前空間の管理、ブロックモデルの更新などを行います。
     /// </summary>
-    internal partial class MainWindowViewModel : ObservableObject
+    public partial class MainPageViewModel : ObservableObject
     {
         /// <summary>
         /// ツールの設定を保持するプロパティ。
         /// </summary>
-        private Setting<ToolConfig> _config;
+        private readonly Setting<ToolConfig> _config;
 
         [ObservableProperty]
         private NotifyInfo _notifyData;
@@ -115,19 +115,12 @@ namespace MCItemViewer.ViewModels
         private string _drawnBackgroundColor = "";
 
         /// <summary>
-        /// コンストラクタ。カレントディレクトリの設定ファイル（tool_settings.json）を読み込み、初期データを設定する。
+        /// コンストラクタ。DI コンテナから設定を受け取り、初期データを設定する。
         /// </summary>
-        public MainWindowViewModel() : this(Path.Combine(Directory.GetCurrentDirectory(), "tool_settings.json"))
+        /// <param name="config">ツールの設定（アプリ全体で共有するシングルトン）</param>
+        public MainPageViewModel(Setting<ToolConfig> config)
         {
-        }
-
-        /// <summary>
-        /// コンストラクタ。指定された設定ファイルを読み込み、初期データを設定する。
-        /// </summary>
-        /// <param name="settingPath">設定ファイルのパス</param>
-        internal MainWindowViewModel(string settingPath)
-        {
-            _config = new Setting<ToolConfig>(settingPath);
+            _config = config;
             _notifyData = new NotifyInfo();
             _vanillaMinecraftPath = _config.Data.VanillaMinecraftPath;
             _modMinecraftPath = _config.Data.ModMinecraftPath;

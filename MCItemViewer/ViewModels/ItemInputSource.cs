@@ -3,7 +3,7 @@ namespace MCItemViewer.ViewModels
     /// <summary>
     /// 表示するアイテムを決める入力元
     /// </summary>
-    internal enum ItemInputSource
+    public enum ItemInputSource
     {
         /// <summary>
         /// 入力なし（モデルローダーで選択中のアイテムを使う）

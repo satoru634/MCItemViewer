@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using MCBlockViewer.Models;
 using MCItemViewerTests.Helpers;
@@ -56,6 +56,17 @@ namespace MCItemViewerTests.Models
             Assert.Equal([16, 32, 64, 128, 256, 512, 1024], config.OutputSizeList);
         }
 
+        [Fact]
+        public void Constructor_WindowSetting_IsDefaultWindowSettingData()
+        {
+            var config = new ToolConfig();
+
+            Assert.NotNull(config.WindowSetting);
+            Assert.Equal(new Point(100, 100), config.WindowSetting.WindowPos);
+            Assert.Equal(new Size(1000, 560), config.WindowSetting.WindowSize);
+            Assert.False(config.WindowSetting.IsPaneOpen);
+        }
+
         // ── 設定ファイルとの読み書き ───────────────────────────────────────────
 
         [Fact]
@@ -71,6 +82,9 @@ namespace MCItemViewerTests.Models
             setting.Data.OutputBasePath = @"C:\out";
             setting.Data.BackgroundColor = "#FF00FF";
             setting.Data.OutputSizeList = [32, 64];
+            setting.Data.WindowSetting.WindowPos = new Point(20, 30);
+            setting.Data.WindowSetting.WindowSize = new Size(1200, 700);
+            setting.Data.WindowSetting.IsPaneOpen = true;
 
             setting.Save();
             var loaded = new Setting<ToolConfig>(path).Data;
@@ -83,6 +97,9 @@ namespace MCItemViewerTests.Models
             Assert.Equal(@"C:\out", loaded.OutputBasePath);
             Assert.Equal("#FF00FF", loaded.BackgroundColor);
             Assert.Equal([32, 64], loaded.OutputSizeList);
+            Assert.Equal(new Point(20, 30), loaded.WindowSetting.WindowPos);
+            Assert.Equal(new Size(1200, 700), loaded.WindowSetting.WindowSize);
+            Assert.True(loaded.WindowSetting.IsPaneOpen);
         }
 
         [Fact]
@@ -96,6 +113,7 @@ namespace MCItemViewerTests.Models
             Assert.Equal("#123456", loaded.BackgroundColor);
             Assert.Equal("", loaded.PrevItemName);
             Assert.Equal([16, 32, 64, 128, 256, 512, 1024], loaded.OutputSizeList);
+            Assert.False(loaded.WindowSetting.IsPaneOpen);
         }
     }
 
@@ -112,7 +130,15 @@ namespace MCItemViewerTests.Models
             var data = new WindowSettingData();
 
             Assert.Equal(new Point(100, 100), data.WindowPos);
-            Assert.Equal(new Size(1000, 500), data.WindowSize);
+            Assert.Equal(new Size(1000, 560), data.WindowSize);
+        }
+
+        [Fact]
+        public void Constructor_IsPaneOpen_IsFalse()
+        {
+            var data = new WindowSettingData();
+
+            Assert.False(data.IsPaneOpen);
         }
     }
 }

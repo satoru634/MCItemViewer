@@ -1,52 +1,64 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using MCBlockViewer.Models;
+using MCItemViewer.Services;
+using MCItemViewer.ViewModels.Pages;
+using MCItemViewer.ViewModels.Windows;
+using MCItemViewer.Views.Pages;
+using MCItemViewer.Views.Windows;
+using MCToolsCommonLib.Common;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Wpf.Ui;
+using Wpf.Ui.DependencyInjection;
 
 namespace MCBlockViewer
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    /// アプリケーションのエントリポイント。
+    /// .NET Generic Host を用いて DI コンテナを構築し、ホストのライフサイクルを管理する。
     /// </summary>
     public partial class App
     {
-        // The.NET Generic Host provides dependency injection, configuration, logging, and other services.
-        // https://docs.microsoft.com/dotnet/core/extensions/generic-host
-        // https://docs.microsoft.com/dotnet/core/extensions/dependency-injection
-        // https://docs.microsoft.com/dotnet/core/extensions/configuration
-        // https://docs.microsoft.com/dotnet/core/extensions/logging
+        /// <summary>
+        /// .NET Generic Host（DI・設定・ライフサイクル管理を提供する）
+        /// </summary>
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
-            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)); })
+            .ConfigureAppConfiguration(c => { c.SetBasePath(AppContext.BaseDirectory); })
             .ConfigureServices((context, services) =>
             {
-                throw new NotImplementedException("No service or window was registered.");
+                // 設定ファイル（カレントディレクトリの tool_settings.json）を各 ViewModel で共有する。
+                // 読み込みは最初に要求されたとき（メインウィンドウの生成時）に行う
+                services.AddSingleton(_ => new Setting<ToolConfig>(Path.Combine(Directory.GetCurrentDirectory(), "tool_settings.json")));
+
+                // NavigationView が遷移先のページを DI コンテナから取得するためのプロバイダー
+                services.AddNavigationViewPageProvider();
+
+                // アプリ起動時にメインウィンドウを表示するホステッドサービス
+                services.AddHostedService<ApplicationHostService>();
+
+                // メインウィンドウ（ナビゲーションのホスト）
+                services.AddSingleton<INavigationWindow, MainWindow>();
+                services.AddSingleton<MainWindowViewModel>();
+
+                // 各ページと ViewModel
+                services.AddSingleton<MainPage>();
+                services.AddSingleton<MainPageViewModel>();
             }).Build();
 
         /// <summary>
-        /// Gets registered service.
+        /// アプリケーションの起動時に呼び出され、ホストを開始する。
         /// </summary>
-        /// <typeparam name="T">Type of the service to get.</typeparam>
-        /// <returns>Instance of the service or <see langword="null"/>.</returns>
-        public static T GetService<T>()
-            where T : class
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
-            return _host.Services.GetService(typeof(T)) as T;
+            await _host.StartAsync();
         }
 
         /// <summary>
-        /// Occurs when the application is loading.
-        /// </summary>
-        private void OnStartup(object sender, StartupEventArgs e)
-        {
-            _host.Start();
-        }
-
-        /// <summary>
-        /// Occurs when the application is closing.
+        /// アプリケーションの終了時に呼び出され、ホストを停止して破棄する。
         /// </summary>
         private async void OnExit(object sender, ExitEventArgs e)
         {
@@ -56,11 +68,11 @@ namespace MCBlockViewer
         }
 
         /// <summary>
-        /// Occurs when an exception is thrown by an application but not handled.
+        /// ハンドルされない例外が発生したときに呼び出される。
         /// </summary>
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            // For more info see https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.dispatcherunhandledexception?view=windowsdesktop-6.0
+            // 必要に応じてここでエラーダイアログ表示やログ記録を行う
         }
     }
 }
