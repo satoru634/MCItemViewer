@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Threading.Tasks;
 using MCToolsCommonLib.Common;
+using Wpf.Ui.Appearance;
 
 namespace MCBlockViewer.Models
 {
@@ -30,13 +32,21 @@ namespace MCBlockViewer.Models
         public bool IsPaneOpen { get; set; }
 
         /// <summary>
-        /// コンストラクタ。デフォルトのウィンドウ位置とサイズ、ペインの開閉状態（閉じた状態）を設定する。
+        /// アプリケーションのテーマ（ライト／ダーク）を保持するプロパティ。
+        /// 設定ファイルを見て分かるよう、数値ではなく名前（"Light" / "Dark"）で保存する。
+        /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter<ApplicationTheme>))]
+        public ApplicationTheme Theme { get; set; }
+
+        /// <summary>
+        /// コンストラクタ。デフォルトのウィンドウ位置とサイズ、ペインの開閉状態（閉じた状態）、テーマ（ダーク）を設定する。
         /// </summary>
         public WindowSettingData()
         {
             WindowPos = new Point(100, 100);
             WindowSize = new Size(1000, 560);
             IsPaneOpen = false;
+            Theme = ApplicationTheme.Dark;
         }
     }
 
@@ -91,6 +101,11 @@ namespace MCBlockViewer.Models
         public WindowSettingData WindowSetting { get; set; }
 
         /// <summary>
+        /// 表示言語の言語コード（"ja" / "en"）を保持するプロパティ
+        /// </summary>
+        public string Language { get; set; }
+
+        /// <summary>
         /// コンストラクタ。デフォルトの設定を初期化する。
         /// </summary>
         public ToolConfig()
@@ -107,6 +122,7 @@ namespace MCBlockViewer.Models
             OutputSizeList = new List<int> { 16, 32, 64, 128, 256, 512, 1024 };
 
             WindowSetting = new WindowSettingData();
+            Language = "ja";
         }
     }
 }
