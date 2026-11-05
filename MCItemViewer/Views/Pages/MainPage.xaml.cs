@@ -52,11 +52,13 @@ namespace MCItemViewer.Views.Pages
         /// <summary>
         /// ページが読み込まれたときに呼び出されるイベントハンドラ。
         /// ナビゲーションで再表示されたときも呼び出されるが、サイズやアイテムが変わっていなければ再描画しない。
+        /// 設定ページで言語が切り替えられていた場合は、アイテム名をその言語で読み込み直してから再描画する。
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            ViewModel.ApplyItemLanguage();
             UpdateBlockModel();
             return;
         }

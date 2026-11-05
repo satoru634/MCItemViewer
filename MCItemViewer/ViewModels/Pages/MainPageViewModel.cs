@@ -116,6 +116,11 @@ namespace MCItemViewer.ViewModels.Pages
         private string _drawnBackgroundColor = "";
 
         /// <summary>
+        /// 現在のモデルローダーがアイテム名の読み込みに使った Minecraft の言語コード（"ja_jp" / "en_us"）
+        /// </summary>
+        private string _itemLanguageCode = "";
+
+        /// <summary>
         /// コンストラクタ。DI コンテナから設定を受け取り、初期データを設定する。
         /// </summary>
         /// <param name="config">ツールの設定（アプリ全体で共有するシングルトン）</param>
@@ -275,6 +280,9 @@ namespace MCItemViewer.ViewModels.Pages
         /// <returns>初期化された BlockModelLoarder。</returns>
         private BlockModelLoarder InitBlockModelLoarder(string selectedNameSpace)
         {
+            // アイテム名の言語は設定の表示言語に合わせる
+            _itemLanguageCode = LocalizationManager.ToMinecraftLanguageCode(_config.Data.Language);
+
             // 選択された名前空間に基づいて、BlockModelLoarderを初期化する。
             if (_config.Data.MinecraftVersion == "")
             {
@@ -288,16 +296,43 @@ namespace MCItemViewer.ViewModels.Pages
                 return new BlockModelLoarder();
             }
 
-            // 暫定的に日本語の言語コードを使用
-            BlockModelLoarder modelLoader = new BlockModelLoarder(programPath, "ja_jp", _config.Data.MinecraftVersion);
+            // アイテム名は表示言語の言語ファイルから読み込む
+            BlockModelLoarder modelLoader = new BlockModelLoarder(programPath, _itemLanguageCode, _config.Data.MinecraftVersion);
 
-            // 前回のアイテムIDが設定されている場合、モデルをロードする
-            if (modelLoader.ExistsItemName(_config.Data.PrevItemName))
+            // 前回のアイテムをロードする。
+            // アイテム名は言語によって変わるため、アイテムID で探し、見つからなければ（古い設定ファイルなど）アイテム名で探す
+            if (modelLoader.ExsistsItemID(_config.Data.PrevItemID))
+            {
+                modelLoader.LoadModel(modelLoader.GetItemName(_config.Data.PrevItemID));
+            }
+            else if (modelLoader.ExistsItemName(_config.Data.PrevItemName))
             {
                 modelLoader.LoadModel(_config.Data.PrevItemName);
             }
- 
+
             return modelLoader;
+        }
+
+        /// <summary>
+        /// 設定の表示言語が、現在のモデルローダーのアイテム名の言語と異なる場合、
+        /// その言語のアイテム名でモデルローダーを作り直す。選択中のアイテムはアイテムID で引き継ぐ。
+        /// </summary>
+        /// <remarks>
+        /// 設定ページで言語を切り替えた後、メインページが再表示されたときに呼び出す。
+        /// 作り直した場合は前回の描画内容を破棄し、次の描画で新しいモデルを描画させる。
+        /// </remarks>
+        /// <returns>モデルローダーを作り直した場合は true</returns>
+        public bool ApplyItemLanguage()
+        {
+            if (LocalizationManager.ToMinecraftLanguageCode(_config.Data.Language) == _itemLanguageCode)
+            {
+                return false;
+            }
+
+            ModelLoader.Dispose();
+            ModelLoader = InitBlockModelLoarder(NameSpaceList.ItemList[NameSpaceList.SelectedIndex]);
+            _drawnItemID = "";
+            return true;
         }
 
         /// <summary>

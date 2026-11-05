@@ -70,12 +70,15 @@ WPF-UI の `NavigationView` によるページ遷移構成です（参考: Comfy
 - `ViewModels/Pages/MainPageViewModel.cs` は `Setting<ToolConfig>`、バージョン/名前空間/出力サイズのリスト、`BlockModelLoarder`、`ModelRender` を保持します。Minecraft のパスやバージョンを変更すると、ローダーは破棄されて再生成されます。設定は変更のたびに即座に保存されます。
 - `Views/Pages/MainPage.xaml.cs` はイベントの配線が中心です。アイテムID とアイテム名の AutoSuggestBox の相互同期と、サイズ/アイテム/背景色が変わっていなければ再描画をスキップする判定は、ViewModel の `TryResolveItem`（入力元は `ItemInputSource`）、`NeedsRedraw`、`SaveDrawnState` に切り出してあり、code-behind はそれらを呼んで結果をコントロールに反映するだけです。
 - ページはシングルトンのため、別ページから戻ってきても同じインスタンスが再表示されます（`Loaded` は再度発火するが、サイズ等が変わっていなければ再描画しない）。
+- アイテム名は表示言語（`ToolConfig.Language`）に合わせた Minecraft の言語ファイルから読み込みます（`"ja"` → `ja_jp`、`"en"` → `en_us`。`LocalizationManager.ToMinecraftLanguageCode`）。
+  - 設定ページで言語を切り替えた後にメインページへ戻ると、`Page_Loaded` から `ApplyItemLanguage` が呼ばれ、言語が変わっていればモデルローダーを作り直して再描画します。
+  - 前回のアイテムは言語に依存しない `PrevItemID` で復元し、見つからない場合（古い設定ファイルなど）だけ `PrevItemName` で探します。
 
 ### 設定ページ（`Views/Pages/SettingPage`）
 
 - `SettingPageViewModel` はテーマ（ライト／ダーク）と表示言語（日本語／English）の選択肢と選択値を持ち、変更のたびに設定を保存します。保存値が選択肢にない場合は既定値（ダーク／日本語）にします。
   - テーマ: `ToolConfig.WindowSetting.Theme`。変更すると `IThemeService` で即時に適用します。
-  - 言語: `ToolConfig.Language`（`"ja"` / `"en"`）。変更すると `LocalizationManager` で即時に表示言語を切り替えます（再起動不要）。
+  - 言語: `ToolConfig.Language`（`"ja"` / `"en"`）。変更すると `LocalizationManager` で即時に表示言語を切り替えます（再起動不要）。メインページのアイテム名は、メインページの再表示時にその言語へ切り替わります。
   - テーマの選択肢（`ThemeOption`）の表示名はリソースキーで持ち、言語が切り替わると表示名の変更を通知します。言語の選択肢の表示名は翻訳せず、その言語自身の呼称（日本語／English）です。
 - 起動時のテーマと表示言語の適用は `ApplicationHostService` が行います（ViewModel の生成時には適用しない）。
 
