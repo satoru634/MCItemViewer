@@ -21,7 +21,7 @@ dotnet test MCItemViewer/MCItemViewer.sln
 - ViewModel は DI 用のコンストラクタで `Setting<ToolConfig>` を受け取ります。テストでは一時フォルダの設定ファイルを読み込んだ `Setting<ToolConfig>` を渡して生成します（アプリ本体のようにカレントディレクトリの `tool_settings.json` や実環境の `.minecraft` は使わない）。
 - `IThemeService` を受け取る ViewModel（`SettingPageViewModel`）には、テーマを実際には適用せず呼び出しを記録する `Helpers/FakeThemeService` を渡します。
 - 表示言語（`LocalizationManager.Instance`）はプロセス全体で共有されるため、表示言語を切り替える・表示言語に依存するテストクラスには `[Collection("Culture")]`（並列実行しない）を付け、`Helpers/CultureScope` で言語を切り替えてテスト後に元へ戻します。
-- テストでは一時フォルダにダミーの `.minecraft` を作ります（`Helpers/TestMinecraft`）。アプリは言語を `ja_jp` に固定しているため、jar に加えて、アセットインデックスと `assets/objects` 配下の日本語の言語ファイルも作成します。
+- テストでは一時フォルダにダミーの `.minecraft` を作ります（`Helpers/TestMinecraft`）。アイテム名は表示言語に応じて jar 内の `en_us.json` か、アセットインデックス経由の `assets/objects` 配下の日本語の言語ファイルから読み込むため、両方を作成します（英語名は言語ファイルのキーの末尾。例: `stone`）。
 - 次のものはテスト対象外です。
   - `Viewport3DX`（STA スレッドと GPU）が必要な描画処理（`UpdateBlockModel`、`BeginOutputPng`）
   - ダイアログを表示する `OpenFolder`

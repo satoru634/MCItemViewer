@@ -16,6 +16,7 @@ namespace MCItemViewerTests.ViewModels.Pages
     /// Viewport3DX（WPF の STA スレッドと GPU）が必要な描画処理（UpdateBlockModel、BeginOutputPng）と、
     /// ダイアログを表示する OpenFolder はテスト対象外とする。
     /// code-behind（MainPage.xaml.cs）から切り出したアイテムの解決・再描画判定（TryResolveItem、NeedsRedraw、SaveDrawnState）もここでテストする。
+    /// アイテム名の言語は設定ファイルの Language で決まる（日本語: 設定した日本語名、英語: キーの末尾。TestMinecraft 参照）。
     /// </remarks>
     public class MainPageViewModelTests : IDisposable
     {
@@ -238,6 +239,62 @@ namespace MCItemViewerTests.ViewModels.Pages
         }
 
         [Fact]
+        public void Constructor_LanguageEnglish_UsesEnglishNames()
+        {
+            WriteSetting(c => c.Language = "en");
+
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
+
+            Assert.Equal(["minecraft:apple", "minecraft:stone"], vm.ModelLoader.ItemIDList);
+            Assert.Equal(["apple", "stone"], vm.ModelLoader.ItemNameList);
+        }
+
+        [Theory]
+        [InlineData("fr")]
+        [InlineData("")]
+        public void Constructor_UnsupportedLanguage_UsesJapaneseNames(string language)
+        {
+            WriteSetting(c => c.Language = language);
+
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
+
+            Assert.Equal(["リンゴ", "石"], vm.ModelLoader.ItemNameList);
+        }
+
+        [Fact]
+        public void Constructor_PrevItemIDExists_LoadsModelByItemID()
+        {
+            // 前回のアイテム名が別の言語で保存されていても、アイテムID で前回のアイテムを復元する
+            WriteSetting(c =>
+            {
+                c.Language = "ja";
+                c.PrevItemID = "minecraft:stone";
+                c.PrevItemName = "stone";
+            });
+
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
+
+            Assert.Equal("minecraft:stone", vm.ModelLoader.ItemID);
+            Assert.Equal("石", vm.ModelLoader.ItemName);
+            Assert.Equal(["assets/minecraft/models/item/stone.json"], vm.ModelLoader.Model.ModelFilePath);
+        }
+
+        [Fact]
+        public void Constructor_PrevItemIDNotExists_FallsBackToPrevItemName()
+        {
+            // アイテムID で見つからない場合（古い設定ファイルなど）はアイテム名で復元する
+            WriteSetting(c =>
+            {
+                c.PrevItemID = "minecraft:not_exists";
+                c.PrevItemName = "石";
+            });
+
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
+
+            Assert.Equal("minecraft:stone", vm.ModelLoader.ItemID);
+        }
+
+        [Fact]
         public void Constructor_BlockRender_IsCreated()
         {
             WriteSetting();
@@ -454,6 +511,127 @@ namespace MCItemViewerTests.ViewModels.Pages
             vm.TryResolveItem(ItemInputSource.ItemName, "", "リンゴ", out _, out _);
 
             Assert.Equal("minecraft:stone", vm.ModelLoader.ItemID);
+        }
+
+        // ── ApplyItemLanguage ─────────────────────────────────────────────────
+
+        [Fact]
+        public void ApplyItemLanguage_SameLanguage_ReturnsFalseAndKeepsLoader()
+        {
+            WriteSetting(c => c.Language = "ja");
+            var vm = new MainPageViewModel(new Setting<ToolConfig>(_settingPath));
+            var oldLoader = vm.ModelLoader;
+
+            bool result = vm.ApplyItemLanguage();
+
+            Assert.False(result);
+            Assert.Same(oldLoader, vm.ModelLoader);
+        }
+
+        [Fact]
+        public void ApplyItemLanguage_LanguageChanged_ReloadsItemNamesInNewLanguage()
+        {
+            WriteSetting(c => c.Language = "ja");
+            var config = new Setting<ToolConfig>(_settingPath);
+            var vm = new MainPageViewModel(config);
+            config.Data.Language = "en";
+
+            bool result = vm.ApplyItemLanguage();
+
+            Assert.True(result);
+            Assert.Equal(["apple", "stone"], vm.ModelLoader.ItemNameList);
+        }
+
+        [Fact]
+        public void ApplyItemLanguage_LanguageChanged_KeepsSelectedItemByItemID()
+        {
+            WriteSetting(c =>
+            {
+                c.Language = "ja";
+                c.PrevItemID = "minecraft:stone";
+                c.PrevItemName = "石";
+            });
+            var config = new Setting<ToolConfig>(_settingPath);
+            var vm = new MainPageViewModel(config);
+            config.Data.Language = "en";
+
+            vm.ApplyItemLanguage();
+
+            Assert.Equal("minecraft:stone", vm.ModelLoader.ItemID);
+            Assert.Equal("stone", vm.ModelLoader.ItemName);
+            Assert.NotEmpty(vm.ModelLoader.Model.ModelFilePath);
+        }
+
+        [Fact]
+        public void ApplyItemLanguage_LanguageChanged_DisposesPreviousLoaderAndRaisesPropertyChanged()
+        {
+            WriteSetting(c => c.Language = "ja");
+            var config = new Setting<ToolConfig>(_settingPath);
+            var vm = new MainPageViewModel(config);
+            var oldLoader = vm.ModelLoader;
+            var changed = new List<string?>();
+            ((INotifyPropertyChanged)vm).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+            config.Data.Language = "en";
+
+            vm.ApplyItemLanguage();
+
+            Assert.NotSame(oldLoader, vm.ModelLoader);
+            Assert.Empty(oldLoader.ItemIDList);
+            Assert.Contains(nameof(MainPageViewModel.ModelLoader), changed);
+        }
+
+        [Fact]
+        public void ApplyItemLanguage_LanguageChanged_NeedsRedraw()
+        {
+            // 古いモデルローダーのモデルは破棄されるため、同じアイテム・サイズでも再描画させる
+            WriteSetting(c =>
+            {
+                c.Language = "ja";
+                c.PrevItemID = "minecraft:stone";
+            });
+            var config = new Setting<ToolConfig>(_settingPath);
+            var vm = new MainPageViewModel(config);
+            vm.SaveDrawnState(300, 200, "#336699");
+            config.Data.Language = "en";
+
+            vm.ApplyItemLanguage();
+
+            Assert.True(vm.NeedsRedraw("minecraft:stone", 300, 200, "#336699"));
+        }
+
+        [Fact]
+        public void ApplyItemLanguage_CalledTwice_ReloadsOnlyOnce()
+        {
+            WriteSetting(c => c.Language = "ja");
+            var config = new Setting<ToolConfig>(_settingPath);
+            var vm = new MainPageViewModel(config);
+            config.Data.Language = "en";
+            vm.ApplyItemLanguage();
+            var loader = vm.ModelLoader;
+
+            bool result = vm.ApplyItemLanguage();
+
+            Assert.False(result);
+            Assert.Same(loader, vm.ModelLoader);
+        }
+
+        [Fact]
+        public void ApplyItemLanguage_MinecraftNotConfigured_ReturnsTrueWithEmptyLoader()
+        {
+            WriteSetting(c =>
+            {
+                c.VanillaMinecraftPath = _temp.Combine("not_exists");
+                c.MinecraftVersion = "";
+                c.Language = "ja";
+            });
+            var config = new Setting<ToolConfig>(_settingPath);
+            var vm = new MainPageViewModel(config);
+            config.Data.Language = "en";
+
+            bool result = vm.ApplyItemLanguage();
+
+            Assert.True(result);
+            Assert.Empty(vm.ModelLoader.ItemIDList);
         }
 
         // ── NeedsRedraw ───────────────────────────────────────────────────────

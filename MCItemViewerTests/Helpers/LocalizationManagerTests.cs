@@ -146,5 +146,24 @@ namespace MCItemViewerTests.Helpers
         {
             Assert.Equal("ja", LocalizationManager.NormalizeLanguage(language));
         }
+
+        // ── ToMinecraftLanguageCode ──────────────────────────────────────────
+
+        [Theory]
+        [InlineData("ja", "ja_jp")]
+        [InlineData("en", "en_us")]
+        public void ToMinecraftLanguageCode_Supported_ReturnsMinecraftCode(string language, string expected)
+        {
+            Assert.Equal(expected, LocalizationManager.ToMinecraftLanguageCode(language));
+        }
+
+        [Theory]
+        [InlineData("fr")]
+        [InlineData("")]
+        [InlineData(null)]
+        public void ToMinecraftLanguageCode_Unsupported_ReturnsJapanese(string? language)
+        {
+            Assert.Equal("ja_jp", LocalizationManager.ToMinecraftLanguageCode(language));
+        }
     }
 }

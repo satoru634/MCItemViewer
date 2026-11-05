@@ -37,6 +37,21 @@ namespace MCItemViewer.Helpers
         }
 
         /// <summary>
+        /// 表示言語の言語コードから、Minecraft の言語ファイルの言語コード（アイテム名の読み込みに使う）を求める。
+        /// 対応していない言語コードは既定の言語（日本語）として扱う。
+        /// </summary>
+        /// <param name="language">表示言語の言語コード（"ja" / "en"）</param>
+        /// <returns>Minecraft の言語コード（"ja_jp" / "en_us"）</returns>
+        public static string ToMinecraftLanguageCode(string? language)
+        {
+            return NormalizeLanguage(language) switch
+            {
+                "en" => "en_us",
+                _ => "ja_jp",
+            };
+        }
+
+        /// <summary>
         /// 現在の表示言語
         /// </summary>
         private CultureInfo _currentCulture = CultureInfo.CurrentUICulture;

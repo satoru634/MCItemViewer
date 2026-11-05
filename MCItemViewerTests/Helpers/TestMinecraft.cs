@@ -10,8 +10,8 @@ namespace MCItemViewerTests.Helpers
     /// テスト用の .minecraft ディレクトリ構成を作成するヘルパー
     /// </summary>
     /// <remarks>
-    /// アプリは言語を ja_jp に固定しているため、jar 内の en_us.json に加えて、
-    /// アセットインデックス経由で参照される ja_jp.json（assets/objects 配下）も作成する。
+    /// アイテム名は表示言語に応じて en_us.json（jar 内）または ja_jp.json（アセットインデックス経由で参照される assets/objects 配下）から読み込むため、両方を作成する。
+    /// 英語名は言語ファイルのキーの末尾（例: "block.minecraft.stone" → "stone"）とする。
     /// </remarks>
     public static class TestMinecraft
     {
