@@ -5,6 +5,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:MCItemViewer.Views.Pages"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:MCItemViewer.Helpers"
     xmlns:hx="http://helix-toolkit.org/wpf/SharpDX"
     xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
     mc:Ignorable="d"
@@ -38,7 +39,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="フォルダ設定" Margin="0,10,0,5" FontWeight="Bold"/>
+            <TextBlock Grid.Row="0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_FolderSectionLabel]}" Margin="0,10,0,5" FontWeight="Bold"/>
             <Border
                 Grid.Row="1"
                 Background="{DynamicResource FlyoutBackground}"
@@ -58,7 +59,7 @@
                         </Grid.ColumnDefinitions>
 
                         <materialIcons:MaterialIcon Kind="FolderHomeOutline" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="Minecraftゲームディレクトリ" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_VanillaMinecraftPathLabel]}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
                         <TextBox
                             Text="{Binding ViewModel.VanillaMinecraftPath}"
                             VerticalAlignment="Center"
@@ -92,7 +93,7 @@
                         </Grid.ColumnDefinitions>
 
                         <materialIcons:MaterialIcon Kind="FolderPoundOutline" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="Minecraftゲームディレクトリ(MOD)" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ModMinecraftPathLabel]}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
                         <TextBox
                             Text="{Binding ViewModel.ModMinecraftPath}"
                             VerticalAlignment="Center"
@@ -125,7 +126,7 @@
                         </Grid.ColumnDefinitions>
 
                         <materialIcons:MaterialIcon Kind="Minecraft" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="Minecraftバージョン" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_MinecraftVersionLabel]}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
                         <ComboBox
                             x:Name="VersionList"
                             Grid.Row="0"
@@ -152,7 +153,7 @@
                         </Grid.ColumnDefinitions>
 
                         <materialIcons:MaterialIcon Kind="FolderDownloadOutline" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="PNG画像出力先フォルダ" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OutputBasePathLabel]}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="1"/>
                         <TextBox
                             Text="{Binding ViewModel.OutputBasePath}"
                             VerticalAlignment="Center"
@@ -175,7 +176,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Grid.Row="2" Text="アイテム" Margin="0,10,0,5" FontWeight="Bold"/>
+            <TextBlock Grid.Row="2" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ItemSectionLabel]}" Margin="0,10,0,5" FontWeight="Bold"/>
 
             <DockPanel Grid.Row="3" LastChildFill="True">
                 <StackPanel x:Name="NotifyArea" DockPanel.Dock="Bottom" Visibility="Collapsed">
@@ -205,7 +206,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <materialIcons:MaterialIcon Kind="CodeBrackets" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="0"/>
-                                <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="名前空間ID" VerticalAlignment="Center" Grid.Column="1"/>
+                                <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_NamespaceLabel]}" VerticalAlignment="Center" Grid.Column="1"/>
                                 <ComboBox
                                     x:Name="NameSpace"
                                     Margin="0,0,0,0"
@@ -230,14 +231,14 @@
                                 </Grid.ColumnDefinitions>
 
                                 <materialIcons:MaterialIcon Kind="CubeOutline" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="0"/>
-                                <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="アイテムID" VerticalAlignment="Center" Grid.Column="1"/>
+                                <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ItemIdLabel]}" VerticalAlignment="Center" Grid.Column="1"/>
                                 <ui:AutoSuggestBox
                                     x:Name="SuggestItemID"
                                     Margin="0,0,0,0"
                                     Padding="0,4,0,4"
                                     FontSize="12"
                                     Grid.Column="2"
-                                    PlaceholderText="アイテムID"
+                                    PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ItemIdLabel]}"
                                     VerticalAlignment="Stretch"
                                     OriginalItemsSource="{Binding ViewModel.ModelLoader.ItemIDList}"
                                     Text="{Binding ViewModel.ModelLoader.ItemID}"
@@ -264,14 +265,14 @@
                                 </Grid.ColumnDefinitions>
 
                                 <materialIcons:MaterialIcon Kind="CubeOutline" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="0"/>
-                                <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="アイテム名" VerticalAlignment="Center" Grid.Column="1"/>
+                                <TextBlock HorizontalAlignment="Left" Margin="0,0,0,0" Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ItemNameLabel]}" VerticalAlignment="Center" Grid.Column="1"/>
                                 <ui:AutoSuggestBox
                                     x:Name="SuggestItemName"
                                     Margin="0,0,0,0"
                                     Padding="0,4,0,4"
                                     FontSize="12"
                                     Grid.Column="2"
-                                    PlaceholderText="アイテム名"
+                                    PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ItemNameLabel]}"
                                     VerticalAlignment="Stretch"
                                     OriginalItemsSource="{Binding ViewModel.ModelLoader.ItemNameList}"
                                     Text="{Binding ViewModel.ModelLoader.ItemName}"
@@ -310,7 +311,7 @@
                         <ColumnDefinition Width="100"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="背景色" Margin="5,10,5,10" FontWeight="Bold" Grid.Column="0"/>
+                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_BackgroundColorLabel]}" Margin="5,10,5,10" FontWeight="Bold" Grid.Column="0"/>
                     <TextBox
                         x:Name="BackgroundColor"
                         Text="{Binding ViewModel.BackgroundColor}"
@@ -335,7 +336,7 @@
                         <ColumnDefinition Width="100"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="出力サイズ" Margin="5,10,5,10" FontWeight="Bold" Grid.Column="0"/>
+                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OutputSizeLabel]}" Margin="5,10,5,10" FontWeight="Bold" Grid.Column="0"/>
                     <ComboBox
                         x:Name="OutputSize"
                         Margin="5,5,5,5"
@@ -354,7 +355,7 @@
                         Grid.Column="2"
                         Margin="4,4,4,4"
                         Padding="4,4,4,4"
-                        ToolTip="PNG出力"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OutputPngButtonTooltip]}"
                         IsEnabled="{Binding ViewModel.ModelLoader.ModelEnabled}"
                         Command="{Binding ViewModel.BeginOutputPngCommand}"
                         CommandParameter="{Binding ElementName=ImageRender}"/>

@@ -22,8 +22,10 @@ Minecraft 固有の処理のほとんどは、git サブモジュール `MCItemV
 ```
 MCItemViewer/                 リポジトリ直下
 ├── MCItemViewer/             アプリ本体（MCItemViewer.sln と MCItemViewer.csproj）
+│   ├── Helpers/              LocalizationManager（表示言語の切り替えと表示文言の取得）
 │   ├── Models/               ToolConfig（設定データ）、ThemeOption・LanguageOption（設定ページの選択肢）
-│   ├── Services/             ApplicationHostService（起動時にテーマを適用してメインウィンドウを表示）、AppThemeService（テーマの適用）
+│   ├── Resources/            Strings.resx（日本語・既定）、Strings.en.resx（英語）、Strings（ResourceManager の公開）
+│   ├── Services/             ApplicationHostService（起動時にテーマと表示言語を適用してメインウィンドウを表示）、AppThemeService（テーマの適用）
 │   ├── ViewModels/
 │   │   ├── Pages/            MainPageViewModel、SettingPageViewModel
 │   │   └── Windows/          MainWindowViewModel
@@ -32,8 +34,9 @@ MCItemViewer/                 リポジトリ直下
 │   │   └── Windows/          MainWindow（NavigationView のホスト）
 │   └── submodules/MCLibs/    サブモジュール（MCLibs）
 └── MCItemViewerTests/        xUnit v3 のユニットテスト（MCItemViewer.sln に含まれる）
-    ├── Helpers/              テスト用ヘルパー（一時フォルダ、ダミーの .minecraft の作成、FakeThemeService）
+    ├── Helpers/              テスト用ヘルパー（一時フォルダ、ダミーの .minecraft の作成、FakeThemeService、CultureScope）と LocalizationManager のテスト
     ├── Models/               ToolConfig・ThemeOption・LanguageOption のテスト
+    ├── Resources/            Strings.resx と Strings.en.resx の整合性のテスト
     └── ViewModels/
         ├── Pages/            MainPageViewModel・SettingPageViewModel のテスト
         └── Windows/          MainWindowViewModel のテスト
@@ -50,7 +53,7 @@ WPF-UI の `NavigationView` によるページ遷移構成です（参考: Comfy
   - `Setting<ToolConfig>`（カレントディレクトリの `tool_settings.json`。全 ViewModel で同じインスタンスを共有する）
   - `AddNavigationViewPageProvider()`（WPF-UI.DependencyInjection。遷移先のページを DI コンテナから取得する）
   - `IThemeService` → `AppThemeService`（テーマの適用）
-  - `ApplicationHostService`（ホステッドサービス。起動時に保存されているテーマを適用してから `INavigationWindow` を取得して表示し、`MainPage` へ遷移する）
+  - `ApplicationHostService`（ホステッドサービス。起動時に保存されているテーマと表示言語を適用してから `INavigationWindow` を取得して表示し、`MainPage` へ遷移する）
   - `INavigationWindow` → `MainWindow`、`MainWindowViewModel`
   - `MainPage`、`MainPageViewModel`
   - `SettingPage`、`SettingPageViewModel`
@@ -72,8 +75,17 @@ WPF-UI の `NavigationView` によるページ遷移構成です（参考: Comfy
 
 - `SettingPageViewModel` はテーマ（ライト／ダーク）と表示言語（日本語／English）の選択肢と選択値を持ち、変更のたびに設定を保存します。保存値が選択肢にない場合は既定値（ダーク／日本語）にします。
   - テーマ: `ToolConfig.WindowSetting.Theme`。変更すると `IThemeService` で即時に適用します。
-  - 言語: `ToolConfig.Language`（`"ja"` / `"en"`）。現状は保存のみで、UI への反映（英語化）は未対応です。
-- 起動時のテーマ適用は `ApplicationHostService` が行います（ViewModel の生成時には適用しない）。
+  - 言語: `ToolConfig.Language`（`"ja"` / `"en"`）。変更すると `LocalizationManager` で即時に表示言語を切り替えます（再起動不要）。
+  - テーマの選択肢（`ThemeOption`）の表示名はリソースキーで持ち、言語が切り替わると表示名の変更を通知します。言語の選択肢の表示名は翻訳せず、その言語自身の呼称（日本語／English）です。
+- 起動時のテーマと表示言語の適用は `ApplicationHostService` が行います（ViewModel の生成時には適用しない）。
+
+### 表示言語（`Helpers/LocalizationManager`、`Resources/Strings*.resx`）
+
+- 画面の文言は `Resources/Strings.resx`（日本語・既定）と `Resources/Strings.en.resx`（英語）に定義します。キーは `<画面>_<用途>` の形です（例: `Main_ItemIdLabel`、`Settings_ThemeLabel`）。
+- XAML からは `{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[キー]}` でバインドします。`LocalizationManager.CurrentCulture` を変えるとインデクサーの変更（`Item[]`）が通知され、全画面の文言が即座に切り替わります。
+- C# からは `LocalizationManager.Instance["キー"]`、書式付きの文言は `LocalizationManager.Instance.Format("キー", 引数)` で取得します（フォルダ選択ダイアログのタイトル、PNG 出力の通知など）。
+- 対応言語は `LocalizationManager.SupportedLanguages`（`"ja"`、`"en"`）です。対応していない言語コードは `NormalizeLanguage` で既定の `"ja"` になります。
+- 文言を追加するときは、両方の resx に同じキーを追加してください（`StringsTests` でキーとプレースホルダーの一致を検査しています）。
 
 ## PNG 出力の流れ（分かりにくい点）
 

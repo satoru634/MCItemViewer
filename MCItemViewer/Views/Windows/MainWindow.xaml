@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:MCItemViewer.Views.Windows"
     xmlns:pages="clr-namespace:MCItemViewer.Views.Pages"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:MCItemViewer.Helpers"
     mc:Ignorable="d"
     Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
     Height="560"
@@ -40,7 +41,7 @@
             IsPaneOpen="{Binding ViewModel.IsPaneOpen, Mode=TwoWay}">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem
-                    Content="メイン"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[MainWindow_MenuMain]}"
                     TargetPageType="{x:Type pages:MainPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="Cube20"/>
@@ -49,7 +50,7 @@
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem
-                    Content="設定"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[MainWindow_MenuSettings]}"
                     TargetPageType="{x:Type pages:SettingPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="Settings20"/>
