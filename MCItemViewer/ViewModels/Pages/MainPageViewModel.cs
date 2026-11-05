@@ -7,6 +7,7 @@ using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 using MCBlockViewer.Models;
+using MCItemViewer.Helpers;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using MCToolsCommonLib.Utils;
@@ -156,7 +157,7 @@ namespace MCItemViewer.ViewModels.Pages
             }
 
             OpenFolderDialog dlg = new OpenFolderDialog();
-            dlg.Title = "フォルダを選択";
+            dlg.Title = LocalizationManager.Instance["Main_FolderDialogTitle"];
             dlg.InitialDirectory = defaultPath;
             if (dlg.ShowDialog() == false)
             {
@@ -445,11 +446,11 @@ namespace MCItemViewer.ViewModels.Pages
             // 出力結果を通知する
             if (outputFileName == "")
             {
-                await Notify(panel, "PNGの出力に失敗しました。", "#EA9999");
+                await Notify(panel, LocalizationManager.Instance["Main_OutputPngFailed"], "#EA9999");
             }
             else
             {
-                await Notify(panel, $"PNGを出力しました。: {outputFileName}", "#B7E1CD");
+                await Notify(panel, LocalizationManager.Instance.Format("Main_OutputPngSucceeded", outputFileName), "#B7E1CD");
             }
 
             return;

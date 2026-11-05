@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using MCBlockViewer.Models;
+using MCItemViewer.Helpers;
 using MCItemViewer.ViewModels.Pages;
 using MCItemViewerTests.Helpers;
 using MCToolsCommonLib.Common;
@@ -14,10 +16,14 @@ namespace MCItemViewerTests.ViewModels.Pages
     /// <remarks>
     /// 一時フォルダの設定ファイルを読み込んだ Setting&lt;ToolConfig&gt; と、テーマを実際には適用しない FakeThemeService を渡して生成する。
     /// 実環境の .minecraft を参照しないよう、設定ファイルには存在しない Minecraft のパスを書き込んでおく。
+    /// 言語の変更は LocalizationManager（プロセス全体で共有）の表示言語を書き換えるため、日本語から始めてテスト後に元へ戻す。
     /// </remarks>
+    [Collection("Culture")]
     public class SettingPageViewModelTests : IDisposable
     {
         private readonly TempDirectory _temp = new TempDirectory();
+
+        private readonly CultureScope _culture = new CultureScope("ja");
 
         private readonly string _settingPath;
 
@@ -30,6 +36,7 @@ namespace MCItemViewerTests.ViewModels.Pages
 
         public void Dispose()
         {
+            _culture.Dispose();
             _temp.Dispose();
         }
 
@@ -74,7 +81,18 @@ namespace MCItemViewerTests.ViewModels.Pages
             var vm = CreateViewModel();
 
             Assert.Equal([ApplicationTheme.Light, ApplicationTheme.Dark], vm.ThemeList.Select(t => t.Key));
+            Assert.Equal(["Settings_ThemeLight", "Settings_ThemeDark"], vm.ThemeList.Select(t => t.LabelKey));
             Assert.Equal(["ライト", "ダーク"], vm.ThemeList.Select(t => t.Label));
+        }
+
+        [Fact]
+        public void Constructor_LanguageList_MatchesSupportedLanguages()
+        {
+            WriteSetting();
+
+            var vm = CreateViewModel();
+
+            Assert.Equal(LocalizationManager.SupportedLanguages, vm.LanguageList.Select(l => l.Key));
         }
 
         [Fact]
@@ -161,6 +179,17 @@ namespace MCItemViewerTests.ViewModels.Pages
             Assert.Equal(before, File.GetLastWriteTimeUtc(_settingPath));
         }
 
+        [Fact]
+        public void Constructor_DoesNotChangeLanguage()
+        {
+            // 起動時の表示言語の適用は ApplicationHostService が行うため、ViewModel の生成時には切り替えない
+            WriteSetting(c => c.Language = "en");
+
+            CreateViewModel();
+
+            Assert.Equal("ja", LocalizationManager.Instance.CurrentCulture.Name);
+        }
+
         // ── SelectedTheme ────────────────────────────────────────────────────
 
         [Fact]
@@ -220,6 +249,31 @@ namespace MCItemViewerTests.ViewModels.Pages
             vm.SelectedLanguage = "en";
 
             Assert.Equal("en", ReadSetting().Language);
+        }
+
+        [Theory]
+        [InlineData("ja", "en")]
+        [InlineData("en", "ja")]
+        public void SelectedLanguage_Changed_SwitchesDisplayLanguage(string from, string to)
+        {
+            WriteSetting(c => c.Language = from);
+            LocalizationManager.Instance.CurrentCulture = new CultureInfo(from);
+            var vm = CreateViewModel();
+
+            vm.SelectedLanguage = to;
+
+            Assert.Equal(to, LocalizationManager.Instance.CurrentCulture.Name);
+        }
+
+        [Fact]
+        public void SelectedLanguage_ChangedToEnglish_ThemeLabelsBecomeEnglish()
+        {
+            WriteSetting(c => c.Language = "ja");
+            var vm = CreateViewModel();
+
+            vm.SelectedLanguage = "en";
+
+            Assert.Equal(["Light", "Dark"], vm.ThemeList.Select(t => t.Label));
         }
 
         [Fact]

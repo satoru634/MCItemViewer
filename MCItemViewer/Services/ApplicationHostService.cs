@@ -1,4 +1,6 @@
+using System.Globalization;
 using MCBlockViewer.Models;
+using MCItemViewer.Helpers;
 using MCItemViewer.Views.Pages;
 using MCItemViewer.Views.Windows;
 using MCToolsCommonLib.Common;
@@ -10,7 +12,7 @@ namespace MCItemViewer.Services
 {
     /// <summary>
     /// アプリケーションのホステッドサービス。
-    /// ホストの起動時に保存されているテーマを適用してからメインウィンドウを表示し、メインページへ遷移する。
+    /// ホストの起動時に保存されているテーマと表示言語を適用してからメインウィンドウを表示し、メインページへ遷移する。
     /// </summary>
     public class ApplicationHostService : IHostedService
     {
@@ -61,13 +63,15 @@ namespace MCItemViewer.Services
         }
 
         /// <summary>
-        /// メインウィンドウがまだ表示されていなければ、保存されているテーマを適用してから生成・表示し、メインページへ遷移する。
+        /// メインウィンドウがまだ表示されていなければ、保存されているテーマと表示言語を適用してから生成・表示し、メインページへ遷移する。
+        /// 表示言語が対応していない言語コードの場合は既定の言語（日本語）を適用する。
         /// </summary>
         private async Task HandleActivationAsync()
         {
             if (!Application.Current.Windows.OfType<MainWindow>().Any())
             {
                 _themeService.SetTheme(_config.Data.WindowSetting.Theme);
+                LocalizationManager.Instance.CurrentCulture = new CultureInfo(LocalizationManager.NormalizeLanguage(_config.Data.Language));
 
                 INavigationWindow navigationWindow = (INavigationWindow)_serviceProvider.GetService(typeof(INavigationWindow))!;
                 navigationWindow.ShowWindow();

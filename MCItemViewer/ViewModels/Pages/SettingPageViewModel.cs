@@ -1,5 +1,7 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MCBlockViewer.Models;
+using MCItemViewer.Helpers;
 using MCItemViewer.Models;
 using MCToolsCommonLib.Common;
 using Wpf.Ui;
@@ -8,11 +10,8 @@ using Wpf.Ui.Appearance;
 namespace MCItemViewer.ViewModels.Pages
 {
     /// <summary>
-    /// 設定ページの ViewModel。テーマと表示言語の選択・保存を担当する。
+    /// 設定ページの ViewModel。テーマと表示言語の選択・適用・保存を担当する。
     /// </summary>
-    /// <remarks>
-    /// 表示言語は設定ファイルへの保存のみで、UI への反映（英語化）は未対応。
-    /// </remarks>
     public partial class SettingPageViewModel : ObservableObject
     {
         /// <summary>
@@ -23,7 +22,7 @@ namespace MCItemViewer.ViewModels.Pages
         /// <summary>
         /// 既定の言語コード（保存値が選択肢にない場合に使う）
         /// </summary>
-        internal const string DefaultLanguage = "ja";
+        internal const string DefaultLanguage = LocalizationManager.DefaultLanguage;
 
         /// <summary>
         /// ツールの設定（アプリ全体で共有するシングルトン）
@@ -40,12 +39,12 @@ namespace MCItemViewer.ViewModels.Pages
         /// </summary>
         public List<ThemeOption> ThemeList { get; } =
         [
-            new(ApplicationTheme.Light, "ライト"),
-            new(ApplicationTheme.Dark, "ダーク"),
+            new(ApplicationTheme.Light, "Settings_ThemeLight"),
+            new(ApplicationTheme.Dark, "Settings_ThemeDark"),
         ];
 
         /// <summary>
-        /// 言語選択コンボボックスに表示する選択肢
+        /// 言語選択コンボボックスに表示する選択肢。ラベルは翻訳せず、その言語自身の呼称で表示する。
         /// </summary>
         public List<LanguageOption> LanguageList { get; } =
         [
@@ -60,7 +59,7 @@ namespace MCItemViewer.ViewModels.Pages
         private ApplicationTheme _selectedTheme;
 
         /// <summary>
-        /// 選択中の言語コード。変更すると設定を保存する。
+        /// 選択中の言語コード。変更すると即時に表示言語を切り替え、設定を保存する。
         /// </summary>
         [ObservableProperty]
         private string _selectedLanguage;
@@ -80,7 +79,7 @@ namespace MCItemViewer.ViewModels.Pages
             _selectedTheme = ThemeList.Any(t => t.Key == theme) ? theme : DefaultTheme;
 
             string language = _config.Data.Language;
-            _selectedLanguage = LanguageList.Any(l => l.Key == language) ? language : DefaultLanguage;
+            _selectedLanguage = LocalizationManager.NormalizeLanguage(language);
         }
 
         /// <summary>
@@ -97,11 +96,13 @@ namespace MCItemViewer.ViewModels.Pages
         }
 
         /// <summary>
-        /// 言語が変更されたときに呼び出され、設定を保存する。
+        /// 言語が変更されたときに呼び出され、表示言語を切り替えて設定を保存する。
         /// </summary>
         /// <param name="value">変更後の言語コード</param>
         partial void OnSelectedLanguageChanged(string value)
         {
+            LocalizationManager.Instance.CurrentCulture = new CultureInfo(value);
+
             _config.Data.Language = value;
             _config.Save();
             return;
