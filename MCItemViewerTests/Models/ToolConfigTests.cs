@@ -3,6 +3,7 @@ using System.Windows;
 using MCBlockViewer.Models;
 using MCItemViewerTests.Helpers;
 using MCToolsCommonLib.Common;
+using Wpf.Ui.Appearance;
 
 namespace MCItemViewerTests.Models
 {
@@ -54,6 +55,7 @@ namespace MCItemViewerTests.Models
             Assert.Equal(Directory.GetCurrentDirectory(), config.OutputBasePath);
             Assert.Equal("#000000", config.BackgroundColor);
             Assert.Equal([16, 32, 64, 128, 256, 512, 1024], config.OutputSizeList);
+            Assert.Equal("ja", config.Language);
         }
 
         [Fact]
@@ -65,6 +67,7 @@ namespace MCItemViewerTests.Models
             Assert.Equal(new Point(100, 100), config.WindowSetting.WindowPos);
             Assert.Equal(new Size(1000, 560), config.WindowSetting.WindowSize);
             Assert.False(config.WindowSetting.IsPaneOpen);
+            Assert.Equal(ApplicationTheme.Dark, config.WindowSetting.Theme);
         }
 
         // ── 設定ファイルとの読み書き ───────────────────────────────────────────
@@ -85,6 +88,8 @@ namespace MCItemViewerTests.Models
             setting.Data.WindowSetting.WindowPos = new Point(20, 30);
             setting.Data.WindowSetting.WindowSize = new Size(1200, 700);
             setting.Data.WindowSetting.IsPaneOpen = true;
+            setting.Data.WindowSetting.Theme = ApplicationTheme.Light;
+            setting.Data.Language = "en";
 
             setting.Save();
             var loaded = new Setting<ToolConfig>(path).Data;
@@ -100,6 +105,8 @@ namespace MCItemViewerTests.Models
             Assert.Equal(new Point(20, 30), loaded.WindowSetting.WindowPos);
             Assert.Equal(new Size(1200, 700), loaded.WindowSetting.WindowSize);
             Assert.True(loaded.WindowSetting.IsPaneOpen);
+            Assert.Equal(ApplicationTheme.Light, loaded.WindowSetting.Theme);
+            Assert.Equal("en", loaded.Language);
         }
 
         [Fact]
@@ -114,6 +121,35 @@ namespace MCItemViewerTests.Models
             Assert.Equal("", loaded.PrevItemName);
             Assert.Equal([16, 32, 64, 128, 256, 512, 1024], loaded.OutputSizeList);
             Assert.False(loaded.WindowSetting.IsPaneOpen);
+            Assert.Equal(ApplicationTheme.Dark, loaded.WindowSetting.Theme);
+            Assert.Equal("ja", loaded.Language);
+        }
+
+        [Fact]
+        public void Setting_Save_WritesThemeAsName()
+        {
+            string path = _temp.Combine("theme.json");
+            var setting = new Setting<ToolConfig>(path, onLoad: false);
+            setting.Data.WindowSetting.Theme = ApplicationTheme.Light;
+
+            setting.Save();
+
+            // 数値（2）ではなく名前で保存される
+            Assert.Contains("\"Theme\": \"Light\"", File.ReadAllText(path));
+        }
+
+        [Theory]
+        [InlineData("\"Dark\"", ApplicationTheme.Dark)]
+        [InlineData("\"Light\"", ApplicationTheme.Light)]
+        [InlineData("2", ApplicationTheme.Light)]
+        public void Setting_Load_ReadsThemeFromNameOrNumber(string themeJson, ApplicationTheme expected)
+        {
+            string path = _temp.Combine("theme.json");
+            File.WriteAllText(path, $$"""{ "WindowSetting": { "Theme": {{themeJson}} } }""");
+
+            var loaded = new Setting<ToolConfig>(path).Data;
+
+            Assert.Equal(expected, loaded.WindowSetting.Theme);
         }
     }
 
@@ -139,6 +175,14 @@ namespace MCItemViewerTests.Models
             var data = new WindowSettingData();
 
             Assert.False(data.IsPaneOpen);
+        }
+
+        [Fact]
+        public void Constructor_Theme_IsDark()
+        {
+            var data = new WindowSettingData();
+
+            Assert.Equal(ApplicationTheme.Dark, data.Theme);
         }
     }
 }

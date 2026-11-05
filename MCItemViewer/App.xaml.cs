@@ -37,6 +37,9 @@ namespace MCBlockViewer
                 // NavigationView が遷移先のページを DI コンテナから取得するためのプロバイダー
                 services.AddNavigationViewPageProvider();
 
+                // テーマ（ライト／ダーク）を切り替えるサービス（単色背景のまま適用する AppThemeService を使う）
+                services.AddSingleton<IThemeService, AppThemeService>();
+
                 // アプリ起動時にメインウィンドウを表示するホステッドサービス
                 services.AddHostedService<ApplicationHostService>();
 
@@ -47,6 +50,8 @@ namespace MCBlockViewer
                 // 各ページと ViewModel
                 services.AddSingleton<MainPage>();
                 services.AddSingleton<MainPageViewModel>();
+                services.AddSingleton<SettingPage>();
+                services.AddSingleton<SettingPageViewModel>();
             }).Build();
 
         /// <summary>
