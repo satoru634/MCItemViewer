@@ -6,7 +6,7 @@ A tool for viewing Minecraft items without launching Minecraft.
 
 You can also export the displayed item as an image.
 
-![screenshot](./screenshot.png)
+![screenshot](./screenshot_en.png)
 
 ## 🌟 Features
 
@@ -35,7 +35,7 @@ Minecraft Java Edition 1.13 or later
 
 1. Set the Minecraft game directory and version.
 
-   ![usage01](./usage01.png)
+   ![usage01](./usage01_en.png)
 
 2. Enter an item ID or item name.
 
@@ -43,7 +43,7 @@ Minecraft Java Edition 1.13 or later
 
    *2 In the current version, the namespace is fixed to `minecraft`.
 
-   ![usage02](./usage02.png)
+   ![usage02](./usage02_en.png)
 
 3. The entered item is displayed on the right.
 
@@ -53,7 +53,7 @@ Minecraft Java Edition 1.13 or later
 
    The image is saved to the location specified in "PNG output folder".
 
-   ![usage03](./usage03.png)
+   ![usage03](./usage03_en.png)
 
 ## 😔 Not supported (Will be supported in the future)
 
